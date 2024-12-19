@@ -1,0 +1,23 @@
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: limited_edition_mysql_container
+    env_file:
+      - .env
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - "3311:3306" # 로컬 3311 포트와 컨테이너 3306 포트 매핑
+    volumes:
+      - mysql_data:/var/lib/mysql           # MySQL 데이터 저장 볼륨
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+volumes:
+  mysql_data:
