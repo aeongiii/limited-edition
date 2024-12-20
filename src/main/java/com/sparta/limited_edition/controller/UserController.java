@@ -2,6 +2,7 @@ package com.sparta.limited_edition.controller;
 
 import com.sparta.limited_edition.dto.JwtResponse;
 import com.sparta.limited_edition.dto.UserRegisterRequest;
+import com.sparta.limited_edition.entity.User;
 import com.sparta.limited_edition.security.JwtTokenProvider;
 import com.sparta.limited_edition.service.MailService;
 import com.sparta.limited_edition.service.UserService;
@@ -59,6 +60,19 @@ public class UserController {
         // 회원가입 시작
         userService.registerUser(email, password, name, address, authNumber);
         String token = jwtTokenProvider.generateToken(email);
+        return ResponseEntity.ok(new JwtResponse(token));
+    }
+
+    // 로그인
+    @PostMapping("/users/login")
+    public ResponseEntity<JwtResponse> loginUser(@RequestBody Map<String, String> requestBody) throws Exception {
+        String email = requestBody.get("email");
+        String password = requestBody.get("password");
+        // 이메일, 비밀번호 맞는지 확인 -> 맞으면 해당 user 가져오기
+        User user = userService.authenticateUser(email, password);
+        // 이메일로 토큰 가져오기
+        String token = jwtTokenProvider.generateToken(user.getEmail());
+
         return ResponseEntity.ok(new JwtResponse(token));
     }
 }
