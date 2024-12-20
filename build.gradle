@@ -36,6 +36,8 @@ dependencies {
     runtimeOnly 'com.h2database:h2'
     // .env 읽기
     implementation("io.github.cdimascio:java-dotenv:5.2.2")
+    // 이메일 인증
+    implementation 'org.springframework.boot:spring-boot-starter-mail'
 
 }
 

@@ -12,4 +12,5 @@ public class UserRegisterRequest {
     private String password;
     private String name;
     private String address;
+    private String authNumber; // 이메일 인증번호
 }

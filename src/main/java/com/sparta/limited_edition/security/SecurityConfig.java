@@ -2,6 +2,8 @@ package com.sparta.limited_edition.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -25,5 +27,11 @@ public class SecurityConfig {
 //                                .anyRequest().authenticated()       -> permitAll() 지정한 경로를 제외하고 나머지는 인증 필요하도록 설정.
                 );
         return http.build();
+    }
+
+    // AuthenticationManager -> Bean 등록
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
+        return authenticationConfiguration.getAuthenticationManager();
     }
 }
