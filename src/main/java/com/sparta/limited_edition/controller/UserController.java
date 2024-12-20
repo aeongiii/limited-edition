@@ -1,8 +1,5 @@
 package com.sparta.limited_edition.controller;
 
-import com.sparta.limited_edition.dto.JwtResponse;
-import com.sparta.limited_edition.dto.UserRegisterRequest;
-import com.sparta.limited_edition.entity.User;
 import com.sparta.limited_edition.security.JwtTokenProvider;
 import com.sparta.limited_edition.service.MailService;
 import com.sparta.limited_edition.service.UserService;
@@ -10,11 +7,8 @@ import com.sparta.limited_edition.util.AuthNumberManager;
 import com.sparta.limited_edition.util.PasswordValidator;
 import jakarta.mail.MessagingException;
 import org.springframework.http.ResponseEntity;
-import org.springframework.mail.MailSender;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
@@ -46,7 +40,7 @@ public class UserController {
 
     // 회원가입 (이메일 인증번호 함께 전달)
     @PostMapping("/users/signup")
-    public ResponseEntity<JwtResponse> registerUser(@RequestBody Map<String, String> requestBody) {
+    public ResponseEntity<String> registerUser(@RequestBody Map<String, String> requestBody) {
         // 요청에서 필요한 값 추출
         String email = requestBody.get("email");
         String password = requestBody.get("password");
@@ -55,24 +49,19 @@ public class UserController {
         String authNumber = requestBody.get("authNumber"); // 이메일 인증번호
         // 비밀번호 유효성 검증
         if (!PasswordValidator.isValidPassword(password)) {
-            return ResponseEntity.badRequest().body(new JwtResponse("비밀번호는 최소 8자리 이상, 영문, 숫자, 특수문자를 포함해야 합니다."));
+            return ResponseEntity.badRequest().body("비밀번호는 최소 8자리 이상, 영문, 숫자, 특수문자를 포함해야 합니다.");
         }
         // 회원가입 시작
         userService.registerUser(email, password, name, address, authNumber);
-        String token = jwtTokenProvider.generateToken(email);
-        return ResponseEntity.ok(new JwtResponse(token));
-    }
+        return ResponseEntity.ok("회원가입이 완료되었습니다.");    }
 
     // 로그인
     @PostMapping("/users/login")
-    public ResponseEntity<JwtResponse> loginUser(@RequestBody Map<String, String> requestBody) throws Exception {
+    public ResponseEntity<Map<String, String>> loginUser(@RequestBody Map<String, String> requestBody) throws Exception {
         String email = requestBody.get("email");
         String password = requestBody.get("password");
-        // 이메일, 비밀번호 맞는지 확인 -> 맞으면 해당 user 가져오기
-        User user = userService.authenticateUser(email, password);
-        // 이메일로 토큰 가져오기
-        String token = jwtTokenProvider.generateToken(user.getEmail());
-
-        return ResponseEntity.ok(new JwtResponse(token));
+        // 로그인 처리 후 A토큰, R토큰 가져와서 반환
+        Map<String, String> tokens = userService.loginUser(email, password);
+        return ResponseEntity.ok(tokens);
     }
 }

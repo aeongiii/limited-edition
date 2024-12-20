@@ -4,10 +4,16 @@ import com.sparta.limited_edition.entity.User;
 import com.sparta.limited_edition.exception.InvalidCredentialsException;
 import com.sparta.limited_edition.repository.UserRepository;
 import com.sparta.limited_edition.security.EncryptionUtil;
+import com.sparta.limited_edition.security.JwtTokenProvider;
 import com.sparta.limited_edition.util.AuthNumberManager;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 // 유저 관련 서비스
 @Service
@@ -18,18 +24,21 @@ public class UserService {
     private final MailService mailService;
     private final AuthenticationManager authenticationManager;
     private final AuthNumberManager authNumberManager;
+    private final RedisTemplate<String, String> redisTemplate; // redis에 데이터 저장
+    private final JwtTokenProvider jwtTokenProvider;
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, MailService mailService, AuthenticationManager authenticationManager, AuthNumberManager authNumberManager) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, MailService mailService, AuthenticationManager authenticationManager, AuthNumberManager authNumberManager, RedisTemplate<String, String> redisTemplate, JwtTokenProvider jwtTokenProvider) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.mailService = mailService;
         this.authenticationManager = authenticationManager;
         this.authNumberManager = authNumberManager;
+        this.redisTemplate = redisTemplate;
+        this.jwtTokenProvider = jwtTokenProvider;
     }
 
     // 회원가입
     public User registerUser(String email, String password, String name, String address, String authNumber) {
-
         // 이메일 암호화
         String encryptedEmail;
         try {
@@ -103,5 +112,29 @@ public class UserService {
             throw new RuntimeException("로그인 중 오류가 발생했습니다.", e);
         }
         return user;
+    }
+
+    // 로그인 처리
+    public Map<String, String> loginUser(String email, String password) throws Exception {
+        // 사용자 이메일, 비밀번호 인증
+        User user = authenticateUser(email, password);
+        // A토큰 생성
+        String accessToken = jwtTokenProvider.generateAccessToken(user.getEmail());
+        // R토큰 생성
+        String refreshToken = jwtTokenProvider.generateRefreshToken(user.getEmail());
+
+        // R토큰 -> Redis에 저장
+        redisTemplate.opsForValue().set(
+                "refresh:" + user.getId(),
+                refreshToken,
+                jwtTokenProvider.getRefreshTokenExpirationTime(), // 만료 시간 (밀리초 단위)
+                TimeUnit.MILLISECONDS // 시간 단위
+        );
+
+        // A토큰과 R토큰을 Map으로 반환
+        Map<String, String> tokenMap = new HashMap<>();
+        tokenMap.put("accessToken", accessToken);
+        tokenMap.put("refreshToken", refreshToken);
+        return tokenMap;
     }
 }
