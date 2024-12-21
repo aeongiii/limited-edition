@@ -15,6 +15,7 @@ import java.util.Date;
 @Component
 public class JwtTokenProvider {
     // Access 토큰 만료 시간 : 10분
+    @Getter
     private final long accessTokenExpirationTime = 1000 * 60 * 10;
     // Refresh 토큰 만료 시간 : 7일
     @Getter
@@ -60,6 +61,7 @@ public class JwtTokenProvider {
         }
     }
 
+    // 이메일 가지고 Refresh 토큰 생성
     public String generateRefreshToken(String email) {
         System.out.println("Refresh토큰 생성 시작: 이메일 -> " + email);
         try {
@@ -75,6 +77,29 @@ public class JwtTokenProvider {
             System.out.println("Refresh토큰 생성 중 오류 발생: " + e.getMessage());
             throw e;
         }
+    }
+
+    // Refresh 토큰 유효성 검사
+    public boolean validateToken(String token) {
+        try {
+            // JWT 파싱, 검증
+            Jwts.parserBuilder().setSigningKey(getSecretKey()).build().parseClaimsJws(token);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    // 토큰에서 userId 추출
+    public String getUserIdFromToken(String token) {
+        // claims 객체 가져오기 (JWT에서 사용자 정보, 만료시간 저장된 payload 부분)
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(getSecretKey()) // 비밀키 설정
+                .build()
+                .parseClaimsJws(token) // JWT 파싱
+                .getBody();
+        // claim에서 Subject 추출 -> user Id 반환
+        return claims.getSubject();
     }
 
     // access 토큰 검증 + 토큰 유효성 확인 -> 이메일 반환
