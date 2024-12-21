@@ -16,10 +16,21 @@ public class Product {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
 
+    @Column(nullable = false)
     private String name;
+
+    @Column(nullable = false)
     private String description;
+
+    @Column(nullable = false)
     private int price;
+
+    @Column(nullable = false)
     private int stockQuantity;
+
+    @Column(nullable = false)
     private boolean isVisible;
+
+    @Column(nullable = false)
     private String imageUrl;
 }

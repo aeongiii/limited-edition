@@ -21,7 +21,7 @@ public class ProductService {
                 .orElseThrow(() -> new IllegalArgumentException("상품이 존재하지 않습니다."));
         // 상품 노출 여부 확인
         if (!product.isVisible()) {
-            throw new IllegalArgumentException("숨김 처리 된 상품입니다.");
+            throw new IllegalArgumentException("해당 상품은 숨김 처리되었습니다.");
         }
         // 상품 품절 여부 확인
         boolean isSoldOut = product.getStockQuantity() == 0;
