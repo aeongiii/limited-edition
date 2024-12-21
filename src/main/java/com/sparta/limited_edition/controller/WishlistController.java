@@ -20,16 +20,14 @@ public class WishlistController {
         this.wishlistService = wishlistService;
     }
 
+    // 상품을 위시리스트에 추가
     @PostMapping("/wishlist/{productId}")
     public ResponseEntity<?> addToWishlist(@PathVariable long productId,
                                            @CookieValue(name = "accessToken", required = false) String accessToken,
                                            @RequestBody Map<String, Integer> requestBody) {
 
         // Access Token 검증
-        if (accessToken == null || !jwtTokenProvider.validateToken(accessToken)) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("유효하지 않은 Access Token입니다.");
-        }
-        System.out.println("Access Token 검증 완료");
+        jwtTokenProvider.validateAccessToken(accessToken);
 
         // 수량 검증
         Integer quantity = requestBody.get("quantity");
@@ -44,4 +42,7 @@ public class WishlistController {
         System.out.println("상품을 위시리스트에 추가했습니다.");
         return ResponseEntity.ok(response);
     }
+
+    // 위시리스트 목록 조회
+
 }

@@ -21,10 +21,9 @@ public class ProductController {
     // 상품 상세정보 가져오기
     @GetMapping("/product/{productId}")
     public ResponseEntity<?> getProductDetails (@PathVariable long productId, @CookieValue(name = "accessToken", required = false) String accessToken) {
-        // Access Token 유효성 검증
-        if (accessToken == null || !jwtTokenProvider.validateToken(accessToken)) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("유효하지 않은 Access Token입니다.");
-        }
+        // Access Token 검증
+        jwtTokenProvider.validateAccessToken(accessToken);
+
         // 상품 정보 가져오기
         ProductDetailResponse productDetail = productService.getProductDetails(productId);
         return ResponseEntity.ok(productDetail);

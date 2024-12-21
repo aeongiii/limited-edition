@@ -89,10 +89,9 @@ public class UserController {
     // 로그아웃
     @PostMapping("/users/logout")
     public ResponseEntity<String> logoutUser(@CookieValue(name = "accessToken", required = false) String accessToken) throws Exception {
-        // Access 토큰 유효성 검사
-        if (accessToken == null || !jwtTokenProvider.validateToken(accessToken)) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Access Token이 유효하지 않습니다.");
-        }
+        // Access Token 검증
+        jwtTokenProvider.validateAccessToken(accessToken);
+
         // Refresh 토큰에서 user_id 가져옴 -> redis에서 Refresh 토큰 삭제
         String userId = jwtTokenProvider.getUserIdFromToken(accessToken);
         redisTemplate.delete("refresh:" + userId);

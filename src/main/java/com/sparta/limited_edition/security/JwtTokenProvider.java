@@ -79,7 +79,15 @@ public class JwtTokenProvider {
         }
     }
 
-    // Refresh 토큰 유효성 검사
+    // Access Token 검증 및 메시지 반환
+    public void validateAccessToken(String accessToken) {
+        if (accessToken == null || !validateToken(accessToken)) {
+            throw new IllegalArgumentException("유효하지 않은 Access Token입니다.");
+        }
+        System.out.println("Access Token 검증 완료");
+    }
+
+    // 토큰 유효성 검사
     public boolean validateToken(String token) {
         try {
             // JWT 파싱, 검증
@@ -102,21 +110,5 @@ public class JwtTokenProvider {
         return claims.getSubject();
     }
 
-    // access 토큰 검증 + 토큰 유효성 확인 -> 이메일 반환
-    public String validateTokenAndGetSubject(String token) {
-        System.out.println("토큰 검증 시작: 토큰 -> " + token);
-        try {
-            Claims claims = Jwts.parserBuilder()
-                    .setSigningKey(getSecretKey()) // 서명 검증을 위해 비밀키 설정
-                    .build()
-                    .parseClaimsJws(token) // jwt 파싱
-                    .getBody(); // Claims 객체(jwt 데이터) 반환
-            System.out.println("토큰 검증 성공: subject -> " + claims.getSubject());
-            return claims.getSubject(); // Claims 객체에서 이메일 반환
-        } catch (Exception e) {
-            System.out.println("토큰 검증 중 오류 발생: " + e.getMessage());
-            throw e;
-        }
-    }
 
 }
