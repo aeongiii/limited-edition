@@ -83,4 +83,34 @@ public class WishlistService {
             );
         }).collect(Collectors.toList());
     }
+
+    // 위시리스트 상품 수량 변경
+    public WishlistResponse updateWishlistQuantity (String email, Long productId, int quantity) {
+        // 유저 검증
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("회원정보를 찾을 수 없습니다."));
+
+        // 상품 검증
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException("상품정보를 찾을 수 없습니다."));
+
+        // 위시리스트에서 상품 찾기
+        Wishlist wishlist = wishlistRepository.findByUserAndProduct(user, product)
+                .orElseThrow(() -> new IllegalArgumentException("위시리스트에 해당 상품이 없습니다."));
+
+        // 수량 업데이트
+        wishlist.setQuantity(quantity);
+        wishlistRepository.save(wishlist);
+        System.out.println("위시리스트 수량 업데이트 완료");
+
+        // DTO 변환 후 반환
+        return new WishlistResponse(
+                product.getId(),
+                product.getName(),
+                wishlist.getQuantity(),
+                product.getPrice(),
+                product.getImageUrl(),
+                "http://localhost:8080/product/" + product.getId() // 상세정보 링크 생성
+        );
+    }
 }

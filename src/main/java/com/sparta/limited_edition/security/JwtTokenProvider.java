@@ -87,6 +87,15 @@ public class JwtTokenProvider {
         System.out.println("Access Token 검증 완료");
     }
 
+    // Access Token 검증 및 이메일 반환
+    public String validateAndExtractEmail(String accessToken) {
+        if (accessToken == null || !validateToken(accessToken)) {
+            throw new IllegalArgumentException("유효하지 않은 Access Token입니다.");
+        }
+        System.out.println("Access Token 검증 완료");
+        return getUserIdFromToken(accessToken);
+    }
+
     // 토큰 유효성 검사
     public boolean validateToken(String token) {
         try {

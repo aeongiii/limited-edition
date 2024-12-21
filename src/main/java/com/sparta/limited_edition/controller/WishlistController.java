@@ -55,4 +55,26 @@ public class WishlistController {
         return allWishlist;
     }
 
+    // 위시리스트 상품 수량 변경
+    @PutMapping("/wishlist/{productId}")
+    public ResponseEntity<?> updateWishlistQuantity (
+            @PathVariable Long productId,
+            @CookieValue(name = "accessToken", required = false) String accessToken,
+            @RequestBody Map<String, Integer> requestBody) {
+
+        // Access Token 검증하고 이메일 추출하기
+        String email = jwtTokenProvider.validateAndExtractEmail(accessToken);
+
+        int quantity = requestBody.getOrDefault("quantity", 0);
+        if (quantity <= 0) {
+            return ResponseEntity.badRequest().body("수량은 0 이상이어야 합니다."); // 수량이 0 이하인 경우 예외 처리
+        }
+
+        // 수량 업데이트
+        WishlistResponse updateWishlistItem = wishlistService.updateWishlistQuantity(email, productId, quantity);
+        return ResponseEntity.ok(updateWishlistItem);
+    }
+
+
+
 }
