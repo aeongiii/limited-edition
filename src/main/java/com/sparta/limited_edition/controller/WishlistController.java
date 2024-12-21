@@ -75,6 +75,20 @@ public class WishlistController {
         return ResponseEntity.ok(updateWishlistItem);
     }
 
+    // 위시리스트 상품 삭제
+    @DeleteMapping("/wishlist/{productId}")
+    public ResponseEntity<String> deleteWishlistItem(
+            @PathVariable Long productId,
+            @CookieValue(name = "accessToken", required = false) String accessToken) {
+
+        // Access Token 검증하고 이메일 추출하기
+        String email = jwtTokenProvider.validateAndExtractEmail(accessToken);
+
+        // 상품 삭제
+        wishlistService.removeWishlistItem(email, productId);
+        return ResponseEntity.ok("상품이 위시리스트에서 삭제되었습니다.");
+    }
+
 
 
 }

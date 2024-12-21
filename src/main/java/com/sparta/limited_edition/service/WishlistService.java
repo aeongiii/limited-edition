@@ -113,4 +113,22 @@ public class WishlistService {
                 "http://localhost:8080/product/" + product.getId() // 상세정보 링크 생성
         );
     }
+
+    // 위시리스트에서 상품 삭제
+    public void removeWishlistItem(String email, Long productId) {
+        // 유저 검증
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("회원정보를 찾을 수 없습니다."));
+
+        // 상품 검증
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException("상품정보를 찾을 수 없습니다."));
+
+        // 위시리스트에서 상품 찾기
+        Wishlist wishlist = wishlistRepository.findByUserAndProduct(user, product)
+                .orElseThrow(() -> new IllegalArgumentException("위시리스트에 해당 상품이 없습니다."));
+        // 삭제
+        wishlistRepository.delete(wishlist);
+        System.out.println("위시리스트에서 상품 삭제 완료");
+    }
 }
