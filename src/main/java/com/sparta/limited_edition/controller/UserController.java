@@ -48,7 +48,7 @@ public class UserController {
 
     // 회원가입 (이메일 인증번호 함께 전달)
     @PostMapping("/users/signup")
-    public ResponseEntity<String> registerUser(@RequestBody Map<String, String> requestBody) {
+    public ResponseEntity<String> signUpUser(@RequestBody Map<String, String> requestBody) {
         // 요청에서 필요한 값 추출
         String email = requestBody.get("email");
         String password = requestBody.get("password");
