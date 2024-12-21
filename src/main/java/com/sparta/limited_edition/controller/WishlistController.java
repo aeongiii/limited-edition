@@ -3,10 +3,10 @@ package com.sparta.limited_edition.controller;
 import com.sparta.limited_edition.dto.WishlistResponse;
 import com.sparta.limited_edition.security.JwtTokenProvider;
 import com.sparta.limited_edition.service.WishlistService;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -44,5 +44,15 @@ public class WishlistController {
     }
 
     // 위시리스트 목록 조회
+    @GetMapping("/wishlist")
+    public List<WishlistResponse> getWishlist(@CookieValue(name = "accessToken", required = false) String accessToken) {
+        // Access Token 검증
+        jwtTokenProvider.validateAccessToken(accessToken);
+
+        // 목록 조회
+        String email = jwtTokenProvider.getUserIdFromToken(accessToken);
+        List<WishlistResponse> allWishlist = wishlistService.getWishlist(email);
+        return allWishlist;
+    }
 
 }

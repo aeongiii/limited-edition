@@ -9,6 +9,9 @@ import com.sparta.limited_edition.repository.UserRepository;
 import com.sparta.limited_edition.repository.WishlistRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 @Service
 public class WishlistService {
 
@@ -52,7 +55,32 @@ public class WishlistService {
                 wishlist.getQuantity(), // 누적된 수량으로 입력해야한다...
                 product.getPrice(),
                 product.getImageUrl(),
-                "http://localhost:8080/product/"+product.getId() // 상세정보 조회 url
+                "http://localhost:8080/product/" + product.getId() // 상세정보 조회 url 만들어서 같이 반환
         );
+    }
+
+    // 위시리스트 목록 조회
+    public List<WishlistResponse> getWishlist(String email) {
+        // userId 가져오기
+        Long userId = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("회원정보를 찾을 수 없습니다."))
+                .getId();
+
+        // 목록 조회 - 비었을 경우에도 빈 리스트 반환해야 함
+        List<Wishlist> wishlists = wishlistRepository.findAllByUserId(userId);
+        System.out.println("위시리스트 목록 조회 완료");
+
+        // 위시리스트를 ResponseDto로 변환
+        return wishlists.stream().map(item -> {
+            Product product = item.getProduct(); // 연관된 Product 객체 가져오기
+            return new WishlistResponse(
+                    product.getId(),
+                    product.getName(),
+                    item.getQuantity(),
+                    product.getPrice(),
+                    product.getImageUrl(),
+                    "http://localhost:8080/product/" + product.getId() // 상세정보 링크
+            );
+        }).collect(Collectors.toList());
     }
 }
