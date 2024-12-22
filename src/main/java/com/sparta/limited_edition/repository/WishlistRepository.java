@@ -13,4 +13,6 @@ public interface WishlistRepository extends JpaRepository<Wishlist, Long> {
     Optional<Wishlist> findByUserAndProduct(User user, Product product);
     // userId로 전체 위시리스트 목록 불러오기
     List<Wishlist> findAllByUserId(Long userId);
+    // 주문 완료한 뒤 -> userId에 해당하는 위시 상품 모두 삭제
+    void deleteAllByUserId(Long id);
 }

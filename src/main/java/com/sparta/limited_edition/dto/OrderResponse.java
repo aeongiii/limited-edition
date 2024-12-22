@@ -1,0 +1,18 @@
+package com.sparta.limited_edition.dto;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.util.List;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class OrderResponse {
+    private Long orderId;
+    private int totalAmount;
+    private List<OrderItemResponse> orderItems;
+}
