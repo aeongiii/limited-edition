@@ -26,23 +26,19 @@ public class ReturnCompletionJob implements Job {
 
     @Override
     @Transactional
-    // Quartz Job 설정해두면 24시간 후에 실행되는 메서드
+    // 반품 시 : [반품 신청] -> 1일 뒤 [반품 완료]로 자동 변경하는 Job
     public void execute(JobExecutionContext context) throws JobExecutionException {
         // JobExecutionContext에서 orderId 파라미터 추출
         Long orderId = context.getJobDetail().getJobDataMap().getLong("orderId");
-
         System.out.println("Quartz Job 실행 시작 - 주문 ID: " + orderId + ", 실행 시각: " + LocalDateTime.now());
-
         try {
             // 주문 정보 가져오기
             Orders order = orderRepository.findById(orderId)
                     .orElseThrow(() -> new IllegalArgumentException("주문 정보를 찾을 수 없습니다."));
-
             // "반품 완료"로 상태 변경
             order.setStatus("반품 완료");
             order.setUpdatedAt(LocalDateTime.now());
             orderRepository.save(order);
-
             // 재고 복구
             List<OrderDetail> orderDetails = orderDetailRepository.findAllByOrdersId(orderId);
             for (OrderDetail detail : orderDetails) {
@@ -50,10 +46,7 @@ public class ReturnCompletionJob implements Job {
                 product.setStockQuantity(product.getStockQuantity() + detail.getQuantity());
                 productRepository.save(product);
             }
-
-            // 성공 로그 추가
             System.out.println("Quartz Job 실행 완료 - 반품 처리 완료: 주문 ID: " + orderId);
-
         } catch (Exception e) {
             // 오류 로그 추가
             System.err.println("Quartz Job 실행 중 오류 발생 - 주문 ID: " + orderId + ", 오류 메시지: " + e.getMessage());

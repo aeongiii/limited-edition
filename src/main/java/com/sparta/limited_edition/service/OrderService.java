@@ -6,6 +6,7 @@ import com.sparta.limited_edition.dto.OrderResponse;
 import com.sparta.limited_edition.entity.*;
 import com.sparta.limited_edition.repository.*;
 import com.sparta.limited_edition.util.ReturnCompletionJob;
+import com.sparta.limited_edition.util.UpdateOrderStatusJob;
 import org.quartz.*;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.quartz.SchedulerFactoryBean;
@@ -83,6 +84,9 @@ public class OrderService {
         // 주문 정보 업데이트
         order.setTotalAmount(totalAmount);
         orderDetailRepository.saveAll(orderDetails);
+
+        // [주문 완료] -> [배송중] -> [배송 완료] 상태 자동 업데이트하는 job 생성
+        scheduleOrderStatusJobs(order.getId());
 
         // 위시리스트에서 삭제
         wishlistRepository.deleteAllByUserId(user.getId());
@@ -207,6 +211,50 @@ public class OrderService {
             scheduler.scheduleJob(jobDetail, trigger);
         } catch (Exception e) {
             throw new RuntimeException("Quartz Job 등록 중 오류 발생", e);
+        }
+    }
+
+    // 주문 시 Quartz Job 등록
+    private void scheduleOrderStatusJobs(Long orderId) {
+        try {
+            Scheduler scheduler = schedulerFactoryBean.getScheduler();
+            // 1일 뒤 -> 배송중 상태로 변경하는 Job
+            JobDetail deliveryJob = JobBuilder.newJob(UpdateOrderStatusJob.class)
+                    .withIdentity("deliveryJob-" + orderId)
+                    .usingJobData("orderId", orderId)
+                    .usingJobData("newStatus", "배송중")
+                    .storeDurably()
+                    .build();
+            // 1일 뒤 -> 배송중 상태로 변경하는 Trigger
+            Trigger deliveryTrigger = TriggerBuilder.newTrigger()
+                    .forJob(deliveryJob)
+                    .withIdentity("deliveryTrigger-" + orderId)
+                    .startAt(Date.from(LocalDateTime.now().plusDays(1).atZone(ZoneId.systemDefault()).toInstant()))
+//                    .startAt(Date.from(LocalDateTime.now().plusMinutes(3).atZone(ZoneId.systemDefault()).toInstant())) // 테스트용
+                    .build();
+            // [배송중] JobDetail과 Trigger로 스케줄링
+            scheduler.scheduleJob(deliveryJob, deliveryTrigger);
+            System.out.println("[배송중]으로 변경하는 Job이 등록되었습니다. Order ID: " + orderId);
+
+            // 2일 뒤 -> 배송 완료 상태로 변경하는 Job
+            JobDetail arriveJob = JobBuilder.newJob(UpdateOrderStatusJob.class)
+                    .withIdentity("arriveJob-" + orderId)
+                    .usingJobData("orderId", orderId)
+                    .usingJobData("newStatus", "배송 완료")
+                    .storeDurably()
+                    .build();
+            // 2일 뒤 -> 배송 완료 상태로 변경하는 Trigger
+            Trigger arriveTrigger = TriggerBuilder.newTrigger()
+                    .forJob(arriveJob)
+                    .withIdentity("arriveTrigger-" + orderId)
+                    .startAt(Date.from(LocalDateTime.now().plusDays(2).atZone(ZoneId.systemDefault()).toInstant()))
+//                    .startAt(Date.from(LocalDateTime.now().plusMinutes(6).atZone(ZoneId.systemDefault()).toInstant())) // 테스트용
+                    .build();
+            // [배송 완료] JobDetail과 Trigger로 스케줄링
+            scheduler.scheduleJob(arriveJob, arriveTrigger);
+            System.out.println("[배송 완료]로 변경하는 Job이 등록되었습니다. Order ID: " + orderId);
+        } catch (Exception e) {
+            throw new RuntimeException("Quartz Job 등록 중 오류 발생");
         }
     }
 }
