@@ -6,10 +6,7 @@ import com.sparta.limited_edition.security.JwtTokenProvider;
 import com.sparta.limited_edition.service.OrderService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CookieValue;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -24,7 +21,7 @@ public class OrderController {
     private final OrderService orderService;
     private final JwtTokenProvider jwtTokenProvider;
 
-
+    // 주문하기
     @PostMapping("/order")
     public ResponseEntity<?> createOrder(
             @RequestBody List<OrderRequest> orderRequest,
@@ -47,5 +44,22 @@ public class OrderController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("주문 처리 중 오류가 발생했습니다.");
         }
+    }
+
+    // 주문 목록 조회
+    @GetMapping("/order")
+    public ResponseEntity<?> getOrderDetails(@CookieValue(name = "accessToken", required = false) String accessToken) {
+        // Access Token 검증
+        if (accessToken == null || !jwtTokenProvider.validateToken(accessToken)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("유효하지 않은 Access Token입니다.");
+        }
+
+        // 이메일 추출
+        String email = jwtTokenProvider.getUserIdFromToken(accessToken);
+
+        // 주문 목록 조회
+        List<OrderResponse> orderResponse = orderService.getOrderDeatils(email);
+
+        return ResponseEntity.ok(orderResponse);
     }
 }
