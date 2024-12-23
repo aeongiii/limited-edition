@@ -51,34 +51,34 @@ public class OrderService {
             Product product = productRepository.findById(item.getProductId())
                     .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
 
-            // 4. 상품 재고 확인
+            // 상품 재고 확인
             if (product.getStockQuantity() < item.getQuantity()) {
                 throw new IllegalArgumentException("재고가 부족합니다. (남은 재고: " + product.getStockQuantity() + ")");
             }
 
-            // 5. 스냅샷 생성/재사용
+            // 스냅샷 생성/재사용
             ProductSnapshot snapshot = productSnapshotRepository.findByProduct_Id(product.getId())
                     .orElseGet(() -> productSnapshotRepository.save(new ProductSnapshot(product)));
 
-            // 6. 상품 재고 감소
+            // 상품 재고 감소
             product.setStockQuantity(product.getStockQuantity() - item.getQuantity());
             productRepository.save(product);
 
-            // 7. 상품별 주문 금액 계산 및 저장
+            // 상품별 주문 금액 계산 및 저장
             int subtotalAmount = item.getQuantity() * product.getPrice();
             OrderDetail orderDetail = new OrderDetail(order, snapshot, item.getQuantity(), subtotalAmount);
             orderDetails.add(orderDetail);
             totalAmount += subtotalAmount; // 전체 금액 누적
         }
 
-        // 8. 주문 정보 업데이트
+        // 주문 정보 업데이트
         order.setTotalAmount(totalAmount);
         orderDetailRepository.saveAll(orderDetails);
 
-        // 9. 위시리스트에서 삭제
+        // 위시리스트에서 삭제
         wishlistRepository.deleteAllByUserId(user.getId());
 
-        // 10. 주문 상세 응답 생성
+        // 주문 상세 응답 생성
         List<OrderItemResponse> orderItemResponses = orderDetails.stream()
                 .map(detail -> new OrderItemResponse(
                         detail.getProductSnapshot().getProductId(),
@@ -119,4 +119,35 @@ public class OrderService {
             );
         }).toList(); // orderResponse 리스트로 최종 변환
     }
+
+    // 주문 취소하기
+    @Transactional
+    public String cancelOrder(String email, Long orderId) {
+        // 유저 검증
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("회원 정보를 찾을 수 없습니다."));
+        // 주문 검증
+        Orders orders = orderRepository.findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("주문 정보를 찾을 수 없습니다."));
+        // 취소 가능 상태인지
+        if (!"주문 완료".equals(orders.getStatus())) {
+            throw new IllegalArgumentException("주문을 취소할 수 없는 상태입니다.");
+        }
+        // 상태 변경
+        orders.setStatus("취소 완료");
+        // 주문한 상품 하나하나 찾아서 -> 재고 복구
+        List<OrderDetail> orderDetails = orderDetailRepository.findAllByOrdersId(orderId);
+        for (OrderDetail detail : orderDetails) {
+            Product product = productRepository.findById(detail.getProductSnapshot().getId())
+                    .orElseThrow(() -> new IllegalArgumentException("상품 정보를 찾을 수 없습니다."));
+            product.setStockQuantity(product.getStockQuantity() + detail.getQuantity());
+            productRepository.save(product);
+        }
+        orderRepository.save(orders);
+        return "주문이 취소되었습니다.";
+
+    }
+
+
+
 }

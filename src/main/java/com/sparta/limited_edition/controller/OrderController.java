@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 public class OrderController {
@@ -61,5 +62,27 @@ public class OrderController {
         List<OrderResponse> orderResponse = orderService.getOrderDeatils(email);
 
         return ResponseEntity.ok(orderResponse);
+    }
+
+    // 주문 취소하기
+    @PutMapping ("order/{orderId}/cancel")
+    public ResponseEntity<?> cancelOrder(
+            @PathVariable Long orderId,
+            @CookieValue(name = "accessToken", required = false) String accessToken) {
+        // Access Token 검증
+        if (accessToken == null || !jwtTokenProvider.validateToken(accessToken)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("유효하지 않은 Access Token입니다.");
+        }
+
+        // 이메일 추출
+        String email = jwtTokenProvider.getUserIdFromToken(accessToken);
+
+        // 주문 취소
+        try {
+            String status = orderService.cancelOrder(email, orderId);
+            return ResponseEntity.ok(Map.of("orderId", orderId, "status", status));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 }
