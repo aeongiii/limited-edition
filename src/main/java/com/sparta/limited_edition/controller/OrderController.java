@@ -85,4 +85,26 @@ public class OrderController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+
+    // 반품 신청
+    @PutMapping("order/{orderId}/return")
+    public ResponseEntity<?> returnOrder(
+            @PathVariable Long orderId,
+            @CookieValue(name = "accessToken", required = false) String accessToken) {
+        // Access Token 검증
+        if (accessToken == null || !jwtTokenProvider.validateToken(accessToken)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("유효하지 않은 Access Token입니다.");
+        }
+
+        // 이메일 추출
+        String email = jwtTokenProvider.getUserIdFromToken(accessToken);
+
+        // 주문 취소
+        try {
+            String status = orderService.returnOrder(email, orderId);
+            return ResponseEntity.ok(Map.of("orderId", orderId, "status", status));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
 }

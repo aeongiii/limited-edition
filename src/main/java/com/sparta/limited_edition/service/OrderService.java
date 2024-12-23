@@ -8,6 +8,7 @@ import com.sparta.limited_edition.repository.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -144,10 +145,32 @@ public class OrderService {
             productRepository.save(product);
         }
         orderRepository.save(orders);
-        return "주문이 취소되었습니다.";
+        return "취소 완료";
 
     }
 
+    // 반품 처리
+    @Transactional
+    public String returnOrder(String email, Long orderId) {
+        // 유저 검증
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("회원 정보를 찾을 수 없습니다."));
+        // 주문 검증
+        Orders orders = orderRepository.findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("주문 정보를 찾을 수 없습니다."));
+        // 반품 가능 상태인지
+        if (!"배송 완료".equals(orders.getStatus())) {
+            throw new IllegalArgumentException("배송 완료된 상품만 반품 가능합니다.");
+        }
+        // 배송받은지 1일 이내인지
+        if (orders.getUpdatedAt().plusDays(1).isBefore(LocalDateTime.now())) // updatedAt + 1일이 현재 시간보다 이전인지 확인
+            throw new IllegalArgumentException("배송 완료 후 24시간이 지나 반품할 수 없습니다.");
+        // 상태 변경
+        orders.setStatus("반품 신청");
+        orders.setUpdatedAt(LocalDateTime.now());
+        orderRepository.save(orders);
 
-
+        // 스케줄러에서, D+1이 지나면 알아서 "반품완료"로 변경되고 재고 복구된다.
+        return "반품 신청";
+    }
 }

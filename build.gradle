@@ -40,6 +40,8 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-mail'
     // Redis
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+    // Quartz 스케줄러
+    implementation 'org.springframework.boot:spring-boot-starter-quartz'
 
 }
 

@@ -12,4 +12,6 @@ public interface OrderRepository extends JpaRepository<Orders, Long> {
     List<Orders> findAllByUserEmail(String email);
     // 취소, 반품 제외하고 주문 내역 조회
     List<Orders> findAllByUserEmailAndStatusIn(String email, List<String> status);
+    // "반품 신청" 상태인 주문 모두 가져오기
+    List<Orders> findAllByStatus(String 반품_신청);
 }
