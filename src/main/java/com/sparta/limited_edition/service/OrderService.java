@@ -5,11 +5,17 @@ import com.sparta.limited_edition.dto.OrderRequest;
 import com.sparta.limited_edition.dto.OrderResponse;
 import com.sparta.limited_edition.entity.*;
 import com.sparta.limited_edition.repository.*;
+import com.sparta.limited_edition.util.ReturnCompletionJob;
+import org.quartz.*;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.scheduling.quartz.SchedulerFactoryBean;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -22,14 +28,16 @@ public class OrderService {
     private final OrderDetailRepository orderDetailRepository;
     private final UserRepository userRepository;
     private final WishlistRepository wishlistRepository;
+    private final SchedulerFactoryBean schedulerFactoryBean;
 
-    public OrderService(ProductRepository productRepository, ProductSnapshotRepository productSnapshotRepository, OrderRepository orderRepository, OrderDetailRepository orderDetailRepository, UserRepository userRepository, WishlistRepository wishlistRepository) {
+    public OrderService(ProductRepository productRepository, ProductSnapshotRepository productSnapshotRepository, OrderRepository orderRepository, OrderDetailRepository orderDetailRepository, UserRepository userRepository, WishlistRepository wishlistRepository, @Qualifier("schedulerFactoryBean") SchedulerFactoryBean schedulerFactoryBean) {
         this.productRepository = productRepository;
         this.productSnapshotRepository = productSnapshotRepository;
         this.orderRepository = orderRepository;
         this.orderDetailRepository = orderDetailRepository;
         this.userRepository = userRepository;
         this.wishlistRepository = wishlistRepository;
+        this.schedulerFactoryBean = schedulerFactoryBean;
     }
 
     // 주문하기
@@ -170,7 +178,35 @@ public class OrderService {
         orders.setUpdatedAt(LocalDateTime.now());
         orderRepository.save(orders);
 
+        // Quartz Job 등록
+        scheduleReturnCompletionJob(orderId);
+
         // 스케줄러에서, D+1이 지나면 알아서 "반품완료"로 변경되고 재고 복구된다.
         return "반품 신청";
+    }
+
+    // 반품 신청 시 Quartz Job 등록
+//    @Transactional // 스케줄링 작업만 하는 경우 트랜잭션 처리 필요 없다. DB작업이 추가된다면 처리 필요!
+    private void scheduleReturnCompletionJob(Long orderId) {
+        try {
+            Scheduler scheduler = schedulerFactoryBean.getScheduler();
+            // JobDetail 생성
+            JobDetail jobDetail = JobBuilder.newJob(ReturnCompletionJob.class) // ReturnCompletionJob 클래스를 job으로 설정
+                    .withIdentity("returnCompletionJob-" + orderId) // 고유식별자 이름 설정
+                    .usingJobData("orderId", orderId) // 주문 ID 포함
+                    .storeDurably()
+                    .build();
+            // Trigger 생성
+            Trigger trigger = TriggerBuilder.newTrigger()
+                    .forJob(jobDetail) // 트리거와 JobDetail 연결시킴
+                    .withIdentity("returnCompletionTrigger-" + orderId) // 고유식별자 이름 설정
+                    // 24시간 후에 실행
+                    .startAt(Date.from(LocalDateTime.now().plusDays(1).atZone(ZoneId.systemDefault()).toInstant()))
+                    .build();
+            // JobDetail과 Trigger로 스케줄링
+            scheduler.scheduleJob(jobDetail, trigger);
+        } catch (Exception e) {
+            throw new RuntimeException("Quartz Job 등록 중 오류 발생", e);
+        }
     }
 }
