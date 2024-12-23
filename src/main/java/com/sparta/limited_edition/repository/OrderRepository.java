@@ -10,4 +10,6 @@ import java.util.List;
 public interface OrderRepository extends JpaRepository<Orders, Long> {
     // email에 해당하는 사용자의 주문 내역 조회
     List<Orders> findAllByUserEmail(String email);
+    // 취소, 반품 제외하고 주문 내역 조회
+    List<Orders> findAllByUserEmailAndStatusIn(String email, List<String> status);
 }

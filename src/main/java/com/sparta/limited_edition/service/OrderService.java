@@ -96,7 +96,7 @@ public class OrderService {
     @Transactional
     public List<OrderResponse> getOrderDeatils(String email) {
         // 해당 사용자의 모든 주문내용 가져오기
-        List<Orders> orders = orderRepository.findAllByUserEmail(email);
+        List<Orders> orders = orderRepository.findAllByUserEmailAndStatusIn(email, List.of("주문 완료", "배송중", "배송 완료"));
         // 주문 내역(Order)리스트를 OrderResponse 리스트로 변환
         return orders.stream().map(order -> { // 각 order 객체를 orderResponse 객체로 매핑
             // 해당 주문id에 대한 주문상세(OrderDetail) 리스트 가져오기
