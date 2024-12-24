@@ -64,6 +64,23 @@ public class OrderController {
         return ResponseEntity.ok(orderResponse);
     }
 
+    // 취소/반품 목록 조회
+    @GetMapping("/order/cancel-and-return")
+    public ResponseEntity<?> getCancelAndReturn(@CookieValue(name = "accessToken", required = false) String accessToken) {
+        // Access Token 검증
+        if (accessToken == null || !jwtTokenProvider.validateToken(accessToken)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("유효하지 않은 Access Token입니다.");
+        }
+
+        // 이메일 추출
+        String email = jwtTokenProvider.getUserIdFromToken(accessToken);
+
+        // 주문 목록 조회
+        List<OrderResponse> orderResponse = orderService.getCancelAndReturn(email);
+
+        return ResponseEntity.ok(orderResponse);
+    }
+
     // 주문 취소하기
     @PutMapping ("order/{orderId}/cancel")
     public ResponseEntity<?> cancelOrder(

@@ -102,7 +102,7 @@ public class OrderService {
                 ))
                 .collect(Collectors.toList());
 
-        return new OrderResponse(order.getId(), totalAmount, orderItemResponses);
+        return new OrderResponse(order.getId(), order.getStatus(), totalAmount, orderItemResponses);
     }
 
     // 주문내역 목록 조회
@@ -127,6 +127,36 @@ public class OrderService {
             // OrderResponse 객체 생성하고 orderItemResponseList 넣어서 반환
             return new OrderResponse(
                     order.getId(),
+                    order.getStatus(),
+                    order.getTotalAmount(),
+                    orderItemResponseList
+            );
+        }).toList(); // orderResponse 리스트로 최종 변환
+    }
+
+    // 취소, 반품내역 목록 조회
+    @Transactional
+    public List<OrderResponse> getCancelAndReturn(String email) {
+        // 해당 사용자의 모든 취소/반품 주문 가져오기
+        List<Orders> orders = orderRepository.findAllByUserEmailAndStatusIn(email, List.of("취소 완료", "반품 신청", "반품 완료"));
+        // 취소, 반품 내역(Order)리스트를 OrderResponse 리스트로 변환
+        return orders.stream().map(order -> { // 각 order 객체를 orderResponse 객체로 매핑
+            // 해당 주문id에 대한 주문상세(OrderDetail) 리스트 가져오기
+            List<OrderItemResponse> orderItemResponseList = orderDetailRepository.findAllByOrdersId(order.getId())
+                    .stream()
+                    .map(detail -> new OrderItemResponse( // orderDetail의 각 요소들을 orderItemResponse에 매핑
+                            detail.getProductSnapshot().getProductId(),
+                            detail.getProductSnapshot().getName(),
+                            detail.getQuantity(),
+                            detail.getProductSnapshot().getPrice(),
+                            detail.getSubtotalAmount()
+                    ))
+                    .toList(); // orderItemResponseList 리스트로 변환
+
+            // OrderResponse 객체 생성하고 orderItemResponseList 넣어서 반환
+            return new OrderResponse(
+                    order.getId(),
+                    order.getStatus(),
                     order.getTotalAmount(),
                     orderItemResponseList
             );
@@ -148,6 +178,7 @@ public class OrderService {
         }
         // 상태 변경
         orders.setStatus("취소 완료");
+        orders.setUpdatedAt(LocalDateTime.now());
         // 주문한 상품 하나하나 찾아서 -> 재고 복구
         List<OrderDetail> orderDetails = orderDetailRepository.findAllByOrdersId(orderId);
         for (OrderDetail detail : orderDetails) {
@@ -190,7 +221,6 @@ public class OrderService {
     }
 
     // 반품 신청 시 Quartz Job 등록
-//    @Transactional // 스케줄링 작업만 하는 경우 트랜잭션 처리 필요 없다. DB작업이 추가된다면 처리 필요!
     private void scheduleReturnCompletionJob(Long orderId) {
         try {
             Scheduler scheduler = schedulerFactoryBean.getScheduler();

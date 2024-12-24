@@ -13,6 +13,7 @@ import java.util.List;
 @AllArgsConstructor
 public class OrderResponse {
     private Long orderId;
+    private String status;
     private int totalAmount;
     private List<OrderItemResponse> orderItems;
 }
