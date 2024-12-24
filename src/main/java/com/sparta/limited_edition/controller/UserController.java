@@ -1,5 +1,6 @@
 package com.sparta.limited_edition.controller;
 
+import com.sparta.limited_edition.dto.MyPageResponse;
 import com.sparta.limited_edition.security.JwtTokenProvider;
 import com.sparta.limited_edition.service.MailService;
 import com.sparta.limited_edition.service.UserService;
@@ -7,13 +8,9 @@ import com.sparta.limited_edition.util.AuthNumberManager;
 import com.sparta.limited_edition.util.PasswordValidator;
 import jakarta.mail.MessagingException;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CookieValue;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -108,5 +105,19 @@ public class UserController {
         return ResponseEntity.ok()
                 .header("Set-Cookie", deleteAccessTokenCookie.toString()) // 만료된 쿠키 반환
                 .body("로그아웃 완료");
+    }
+
+    // 마이페이지
+    @GetMapping("users/mypage")
+    public ResponseEntity<MyPageResponse> getMypage(@CookieValue(name = "accessToken", required = false) String accessToken) throws Exception {
+        // Access Token 검증
+        jwtTokenProvider.validateAccessToken(accessToken);
+        // 이메일 추출
+        String email = jwtTokenProvider.getUserIdFromToken(accessToken);
+
+        // 마이페이지 데이터 조회
+        MyPageResponse response = userService.getMypage(email);
+
+        return ResponseEntity.ok(response);
     }
 }
