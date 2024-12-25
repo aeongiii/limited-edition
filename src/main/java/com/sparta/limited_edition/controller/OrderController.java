@@ -14,28 +14,23 @@ import java.util.Map;
 @RestController
 public class OrderController {
 
+    private final OrderService orderService;
+    private final JwtTokenProvider jwtTokenProvider;
+
     public OrderController(OrderService orderService, JwtTokenProvider jwtTokenProvider) {
         this.orderService = orderService;
         this.jwtTokenProvider = jwtTokenProvider;
     }
-
-    private final OrderService orderService;
-    private final JwtTokenProvider jwtTokenProvider;
 
     // 주문하기
     @PostMapping("/order")
     public ResponseEntity<?> createOrder(
             @RequestBody List<OrderRequest> orderRequest,
             @CookieValue(name = "accessToken", required = false) String accessToken) {
-
         // Access Token 검증
-        if (accessToken == null || !jwtTokenProvider.validateToken(accessToken)) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("유효하지 않은 Access Token입니다.");
-        }
-
+        jwtTokenProvider.validateAccessToken(accessToken);
         // 이메일 추출
         String email = jwtTokenProvider.getUserIdFromToken(accessToken);
-
         // 주문
         try {
             OrderResponse orderResponse = orderService.createOrder(email, orderRequest);
@@ -51,16 +46,11 @@ public class OrderController {
     @GetMapping("/order")
     public ResponseEntity<?> getOrderDetails(@CookieValue(name = "accessToken", required = false) String accessToken) {
         // Access Token 검증
-        if (accessToken == null || !jwtTokenProvider.validateToken(accessToken)) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("유효하지 않은 Access Token입니다.");
-        }
-
+        jwtTokenProvider.validateAccessToken(accessToken);
         // 이메일 추출
         String email = jwtTokenProvider.getUserIdFromToken(accessToken);
-
         // 주문 목록 조회
         List<OrderResponse> orderResponse = orderService.getOrderDeatils(email);
-
         return ResponseEntity.ok(orderResponse);
     }
 
@@ -68,16 +58,11 @@ public class OrderController {
     @GetMapping("/order/cancel-and-return")
     public ResponseEntity<?> getCancelAndReturn(@CookieValue(name = "accessToken", required = false) String accessToken) {
         // Access Token 검증
-        if (accessToken == null || !jwtTokenProvider.validateToken(accessToken)) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("유효하지 않은 Access Token입니다.");
-        }
-
+        jwtTokenProvider.validateAccessToken(accessToken);
         // 이메일 추출
         String email = jwtTokenProvider.getUserIdFromToken(accessToken);
-
         // 주문 목록 조회
         List<OrderResponse> orderResponse = orderService.getCancelAndReturn(email);
-
         return ResponseEntity.ok(orderResponse);
     }
 
@@ -87,13 +72,9 @@ public class OrderController {
             @PathVariable Long orderId,
             @CookieValue(name = "accessToken", required = false) String accessToken) {
         // Access Token 검증
-        if (accessToken == null || !jwtTokenProvider.validateToken(accessToken)) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("유효하지 않은 Access Token입니다.");
-        }
-
+        jwtTokenProvider.validateAccessToken(accessToken);
         // 이메일 추출
         String email = jwtTokenProvider.getUserIdFromToken(accessToken);
-
         // 주문 취소
         try {
             String status = orderService.cancelOrder(email, orderId);
@@ -109,13 +90,9 @@ public class OrderController {
             @PathVariable Long orderId,
             @CookieValue(name = "accessToken", required = false) String accessToken) {
         // Access Token 검증
-        if (accessToken == null || !jwtTokenProvider.validateToken(accessToken)) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("유효하지 않은 Access Token입니다.");
-        }
-
+        jwtTokenProvider.validateAccessToken(accessToken);
         // 이메일 추출
         String email = jwtTokenProvider.getUserIdFromToken(accessToken);
-
         // 주문 취소
         try {
             String status = orderService.returnOrder(email, orderId);

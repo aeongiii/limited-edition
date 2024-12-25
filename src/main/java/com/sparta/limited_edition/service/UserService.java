@@ -96,7 +96,7 @@ public class UserService {
     public MyPageResponse getMypage(String email) throws Exception {
         // 유저 검증
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("사용자 정보를 찾을 수 없습니다."));
+                .orElseThrow(() -> new IllegalArgumentException("회원 정보를 찾을 수 없습니다."));
         // 개인정보 가져오기 (복호화)
         String decryptedEmail = EncryptionUtil.decrypt(user.getEmail());
         String decryptedName = EncryptionUtil.decrypt(user.getName());
