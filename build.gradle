@@ -18,6 +18,12 @@ repositories {
 }
 
 dependencies {
+    implementation project(':order-service')
+    implementation project(':payment-service')
+    implementation project(':product-service')
+    implementation project(':user-service')
+    implementation project(':wishlist-service')
+
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-web'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
@@ -42,6 +48,8 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
     // Quartz 스케줄러
     implementation 'org.springframework.boot:spring-boot-starter-quartz'
+    // 모니터링
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
 
 }
 
