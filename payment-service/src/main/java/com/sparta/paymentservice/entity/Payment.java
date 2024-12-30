@@ -16,9 +16,8 @@ public class Payment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "order_id", nullable = false)
-    private Orders order;
+    @Column(name = "order_id", nullable = false)
+    private Long orderId;
 
     @Column(name = "payment_status", nullable = false)
     private String paymentStatus;
@@ -32,8 +31,8 @@ public class Payment {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    public Payment(Orders order, String paymentStatus, int totalAmount, LocalDateTime createdAt, LocalDateTime updatedAt) {
-        this.order = order;
+    public Payment(Long orderId, String paymentStatus, int totalAmount, LocalDateTime createdAt, LocalDateTime updatedAt) {
+        this.orderId = orderId;
         this.paymentStatus = paymentStatus;
         this.totalAmount = totalAmount;
         this.createdAt = createdAt;

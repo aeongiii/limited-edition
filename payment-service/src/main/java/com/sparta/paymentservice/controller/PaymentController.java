@@ -1,9 +1,7 @@
 package com.sparta.paymentservice.controller;
 
-import com.sparta.paymentservice.dto.OrderResponse;
 import com.sparta.paymentservice.dto.PaymentResponse;
 import com.sparta.paymentservice.security.JwtTokenProvider;
-import com.sparta.paymentservice.service.OrderService;
 import com.sparta.paymentservice.service.PaymentService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,17 +10,13 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
-
 @RestController
 public class PaymentController {
 
-    private final OrderService orderService;
     private final PaymentService paymentService;
     private final JwtTokenProvider jwtTokenProvider;
 
-    public PaymentController(OrderService orderService, PaymentService paymentService, JwtTokenProvider jwtTokenProvider) {
-        this.orderService = orderService;
+    public PaymentController(PaymentService paymentService, JwtTokenProvider jwtTokenProvider) {
         this.paymentService = paymentService;
         this.jwtTokenProvider = jwtTokenProvider;
     }
@@ -38,7 +32,8 @@ public class PaymentController {
         // 이메일 추출
         String email = jwtTokenProvider.getUserIdFromToken(accessToken);
         // 주문 목록 조회
-        List<OrderResponse> orderResponse = orderService.getOrderDeatils(email);
+//        List<OrderResponse> orderResponse = orderService.getOrderDeatils(email);
+
         // 결제
         try {
             PaymentResponse response = paymentService.payment(email, orderId);
