@@ -11,6 +11,10 @@ public class EnvConfig {
 
     @Bean
     public Dotenv dotenv() {
+        String host = dotenv.get("MYSQL_HOST");
+        String port = dotenv.get("MYSQL_PORT");
+        System.out.println("MYSQL_HOST: " + host);
+        System.out.println("MYSQL_PORT: " + port);
         return dotenv;
     }
 }
