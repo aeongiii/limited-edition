@@ -18,13 +18,11 @@ public class Wishlist {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    @Column(nullable = false)
+    private Long userId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id", nullable = false)
-    private Product product;
+    @Column(nullable = false)
+    private Long productId;
 
     @Column(nullable = false)
     private int quantity;
@@ -33,9 +31,9 @@ public class Wishlist {
     private LocalDateTime createdAt = LocalDateTime.now();
 
     // wishlist 새로 만드는 경우, 수량은 기본 1
-    public Wishlist(User user, Product product, int quantity) {
-        this.user = user;
-        this.product = product;
+    public Wishlist(Long userId, Long productId, int quantity) {
+        this.userId = userId;
+        this.productId = productId;
         this.quantity = quantity;
     }
 }
