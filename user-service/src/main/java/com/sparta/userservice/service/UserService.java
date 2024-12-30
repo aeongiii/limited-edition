@@ -1,26 +1,20 @@
 package com.sparta.userservice.service;
 
 import com.sparta.userservice.dto.MyPageResponse;
-import com.sparta.userservice.dto.RecentOrderResponse;
-import com.sparta.userservice.dto.WishlistResponse;
 import com.sparta.userservice.entity.User;
 import com.sparta.userservice.exception.InvalidCredentialsException;
-import com.sparta.userservice.repository.OrderRepository;
 import com.sparta.userservice.repository.UserRepository;
-import com.sparta.userservice.repository.WishlistRepository;
 import com.sparta.userservice.security.EncryptionUtil;
 import com.sparta.userservice.security.JwtTokenProvider;
 import com.sparta.userservice.util.AuthNumberManager;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -33,17 +27,14 @@ public class UserService {
     private final AuthNumberManager authNumberManager;
     private final RedisTemplate<String, String> redisTemplate; // redis에 데이터 저장
     private final JwtTokenProvider jwtTokenProvider;
-    private final WishlistRepository wishlistRepository;
-    private final OrderRepository orderRepository;
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, MailService mailService, AuthenticationManager authenticationManager, AuthNumberManager authNumberManager, RedisTemplate<String, String> redisTemplate, JwtTokenProvider jwtTokenProvider, WishlistRepository wishlistRepository, OrderRepository orderRepository, EncryptionUtil encryptionUtil) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, AuthNumberManager authNumberManager, RedisTemplate<String, String> redisTemplate, JwtTokenProvider jwtTokenProvider, EncryptionUtil encryptionUtil) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.authNumberManager = authNumberManager;
         this.redisTemplate = redisTemplate;
         this.jwtTokenProvider = jwtTokenProvider;
-        this.wishlistRepository = wishlistRepository;
-        this.orderRepository = orderRepository;
+
     }
 
     // 1. 회원가입
@@ -102,11 +93,14 @@ public class UserService {
         String decryptedName = EncryptionUtil.decrypt(user.getName());
         String decryptedAddress = EncryptionUtil.decrypt(user.getAddress());
         // 위시리스트, 주문내역 최신순 5개 가져오기
-        List<WishlistResponse> wishlistResponseList = getTop5Wishlists(user);
-        List<RecentOrderResponse> orderResponseList = getTop5Orders(user);
+//        List<WishlistResponse> wishlistResponseList = getTop5Wishlists(user);
+//        List<RecentOrderResponse> orderResponseList = getTop5Orders(user);
         // MypageResponse 생성
+//        return new MyPageResponse(decryptedEmail, decryptedName, decryptedAddress,
+//                user.getCreatedAt(), wishlistResponseList, orderResponseList);
+        // 임시
         return new MyPageResponse(decryptedEmail, decryptedName, decryptedAddress,
-                user.getCreatedAt(), wishlistResponseList, orderResponseList);
+                user.getCreatedAt(), null, null);
     }
 
 
@@ -227,27 +221,27 @@ public class UserService {
     }
 
     // 마이페이지 - 위시리스트 최신순 5개 가져오기
-    private List<WishlistResponse> getTop5Wishlists(User user) {
-        return wishlistRepository.findTop5ByUserIdOrderByCreatedAtDesc(user.getId())
-                .stream()
-                .map(wishlist -> new WishlistResponse(
-                        wishlist.getProduct().getId(),
-                        wishlist.getProduct().getName(),
-                        wishlist.getQuantity(),
-                        wishlist.getProduct().getPrice(),
-                        wishlist.getProduct().getImageUrl(),
-                        "http://localhost:8080/product/" + wishlist.getProduct().getId() // 상세정보 링크 생성
-                )).toList();
-    }
+//    private List<WishlistResponse> getTop5Wishlists(User user) {
+//        return wishlistRepository.findTop5ByUserIdOrderByCreatedAtDesc(user.getId())
+//                .stream()
+//                .map(wishlist -> new WishlistResponse(
+//                        wishlist.getProduct().getId(),
+//                        wishlist.getProduct().getName(),
+//                        wishlist.getQuantity(),
+//                        wishlist.getProduct().getPrice(),
+//                        wishlist.getProduct().getImageUrl(),
+//                        "http://localhost:8080/product/" + wishlist.getProduct().getId() // 상세정보 링크 생성
+//                )).toList();
+//    }
 
     // 마이페이지 - 주문내역 최신순 5개 가져오기
-    private List<RecentOrderResponse> getTop5Orders(User user) {
-        return orderRepository.findTop5ByUserIdOrderByCreatedAtDesc(user.getId())
-                .stream()
-                .map(order -> new RecentOrderResponse(
-                        order.getId(),
-                        order.getStatus(),
-                        order.getCreatedAt().toString()
-                )).toList();
-    }
+//    private List<RecentOrderResponse> getTop5Orders(User user) {
+//        return orderRepository.findTop5ByUserIdOrderByCreatedAtDesc(user.getId())
+//                .stream()
+//                .map(order -> new RecentOrderResponse(
+//                        order.getId(),
+//                        order.getStatus(),
+//                        order.getCreatedAt().toString()
+//                )).toList();
+//    }
 }
