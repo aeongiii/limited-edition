@@ -18,9 +18,8 @@ public class Orders {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    @Column(nullable = false)
+    private Long userId;
 
     @Column(nullable = false)
     private String status; // 주문 상태 (예: 주문 완료)
@@ -34,8 +33,8 @@ public class Orders {
     @Column
     private LocalDateTime updatedAt;
 
-    public Orders(User user, String status, int totalAmount) {
-        this.user = user;
+    public Orders(Long userId, String status, int totalAmount) {
+        this.userId = userId;
         this.status = status;
         this.totalAmount = totalAmount;
     }

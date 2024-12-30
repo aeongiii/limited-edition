@@ -19,9 +19,8 @@ public class OrderDetail {
     @JoinColumn(name = "order_id", nullable = false)
     private Orders orders;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_snapshot_id", nullable = false)
-    private ProductSnapshot productSnapshot;
+    @Column(nullable = false)
+    private Long productSnapshotId;
 
     @Column(nullable = false)
     private int quantity;
@@ -29,9 +28,9 @@ public class OrderDetail {
     @Column(nullable = false)
     private int subtotalAmount; // 상품별 부분합계 (가격 * 주문수량)
 
-    public OrderDetail(Orders order, ProductSnapshot productSnapshot, int quantity, int subtotalAmount) {
+    public OrderDetail(Orders order, Long productSnapshotId, int quantity, int subtotalAmount) {
         this.orders = order;
-        this.productSnapshot = productSnapshot;
+        this.productSnapshotId = productSnapshotId;
         this.quantity = quantity;
         this.subtotalAmount = subtotalAmount;
     }

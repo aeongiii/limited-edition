@@ -2,10 +2,8 @@ package com.sparta.orderservice.util;
 
 import com.sparta.orderservice.entity.OrderDetail;
 import com.sparta.orderservice.entity.Orders;
-import com.sparta.orderservice.entity.Product;
 import com.sparta.orderservice.repository.OrderDetailRepository;
 import com.sparta.orderservice.repository.OrderRepository;
-import com.sparta.orderservice.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.quartz.Job;
 import org.quartz.JobExecutionContext;
@@ -22,7 +20,6 @@ public class ReturnCompletionJob implements Job {
 
     private final OrderRepository orderRepository;
     private final OrderDetailRepository orderDetailRepository;
-    private final ProductRepository productRepository;
 
     @Override
     @Transactional
@@ -41,12 +38,12 @@ public class ReturnCompletionJob implements Job {
             orderRepository.save(order);
             // 재고 복구
             List<OrderDetail> orderDetails = orderDetailRepository.findAllByOrdersId(orderId);
-            for (OrderDetail detail : orderDetails) {
-                Product product = detail.getProductSnapshot().getProduct();
-                product.setStockQuantity(product.getStockQuantity() + detail.getQuantity());
-                productRepository.save(product);
-            }
-            System.out.println("Quartz Job 실행 완료 - 반품 처리 완료: 주문 ID: " + orderId);
+//            for (OrderDetail detail : orderDetails) {
+//                Product product = detail.getProductSnapshot().getProduct();
+//                product.setStockQuantity(product.getStockQuantity() + detail.getQuantity());
+//                productRepository.save(product);
+//            }
+//            System.out.println("Quartz Job 실행 완료 - 반품 처리 완료: 주문 ID: " + orderId);
         } catch (Exception e) {
             // 오류 로그 추가
             System.err.println("Quartz Job 실행 중 오류 발생 - 주문 ID: " + orderId + ", 오류 메시지: " + e.getMessage());

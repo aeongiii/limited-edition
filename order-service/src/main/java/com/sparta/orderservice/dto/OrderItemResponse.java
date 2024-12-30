@@ -1,5 +1,4 @@
 package com.sparta.orderservice.dto;
-import com.sparta.orderservice.entity.ProductSnapshot;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -17,11 +16,11 @@ public class OrderItemResponse {
     private int price;
     private int subtotalAmount; // 상품별 총금액
 
-    public OrderItemResponse(ProductSnapshot snapshot, int quantity, int subtotalAmount) {
-        this.productSnapshotId = snapshot.getProductId();
-        this.name = snapshot.getName();
-        this.quantity = quantity;
-        this.price = snapshot.getPrice();
-        this.subtotalAmount = subtotalAmount;
-    }
+//    public OrderItemResponse(ProductSnapshot snapshot, int quantity, int subtotalAmount) {
+//        this.productSnapshotId = snapshot.getProductId();
+//        this.name = snapshot.getName();
+//        this.quantity = quantity;
+//        this.price = snapshot.getPrice();
+//        this.subtotalAmount = subtotalAmount;
+//    }
 }
