@@ -1,17 +1,17 @@
 -- User 관련 데이터베이스 생성
-CREATE DATABASE user_db;
+CREATE DATABASE IF NOT EXISTS user_db;
 
 -- Product 관련 데이터베이스 생성
-CREATE DATABASE product_db;
+CREATE DATABASE IF NOT EXISTS product_db;
 
 -- Wishlist 관련 데이터베이스 생성
-CREATE DATABASE wishlist_db;
+CREATE DATABASE IF NOT EXISTS wishlist_db;
 
 -- Order 관련 데이터베이스 생성
-CREATE DATABASE order_db;
+CREATE DATABASE IF NOT EXISTS order_db;
 
 -- Payment 관련 데이터베이스 생성
-CREATE DATABASE payment_db;
+CREATE DATABASE IF NOT EXISTS payment_db;
 
 USE user_db;
 

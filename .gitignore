@@ -39,3 +39,8 @@ out/
 
 ### .env ###
 .env
+.env.user
+.env.order
+.env.product
+.env.wishlist
+.env.payment
