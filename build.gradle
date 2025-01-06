@@ -1,11 +1,18 @@
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '3.4.0'
-    id 'io.spring.dependency-management' version '1.1.6'
+    id 'org.springframework.boot' version '3.4.0' apply false
+    id 'io.spring.dependency-management' version '1.1.6' apply false
 }
 
-group = 'com.sparta'
-version = '0.0.1-SNAPSHOT'
+allprojects {
+    group = 'com.sparta'
+    version = '0.0.1-SNAPSHOT'
+
+    repositories {
+        mavenCentral()
+        maven { url "https://repo.spring.io/release" } // Spring Release 저장소
+    }
+}
 
 java {
     toolchain {
@@ -15,42 +22,38 @@ java {
 
 repositories {
     mavenCentral()
+    maven { url "https://repo.spring.io/release" } // Spring Release 저장소
 }
 
-dependencies {
-    implementation project(':order-service')
-    implementation project(':payment-service')
-    implementation project(':product-service')
-    implementation project(':user-service')
-    implementation project(':wishlist-service')
+subprojects {
+    apply plugin: 'java'
+    apply plugin: 'org.springframework.boot'
+    apply plugin: 'io.spring.dependency-management'
 
-    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-    implementation 'org.springframework.boot:spring-boot-starter-web'
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-    runtimeOnly 'com.mysql:mysql-connector-j'
-    // lombok
-    compileOnly 'org.projectlombok:lombok'
-    annotationProcessor 'org.projectlombok:lombok'
-    // spring security, jwt
-    implementation 'org.springframework.boot:spring-boot-starter-security'
-    implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
-    implementation 'io.jsonwebtoken:jjwt-impl:0.11.5'
-    implementation 'io.jsonwebtoken:jjwt-jackson:0.11.5'
-    implementation 'org.springframework.security:spring-security-crypto'
-    // 테스트용 DB
-    runtimeOnly 'com.h2database:h2'
-    // .env 읽기
-    implementation("io.github.cdimascio:java-dotenv:5.2.2")
-    // 이메일 인증
-    implementation 'org.springframework.boot:spring-boot-starter-mail'
-    // Redis
-    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
-    // Quartz 스케줄러
-    implementation 'org.springframework.boot:spring-boot-starter-quartz'
-    // 모니터링
-    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    ext {
+        springCloudVersion = "2024.0.0"
+    }
 
+    dependencyManagement {
+        imports {
+            mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
+        }
+    }
+
+    dependencies {
+        // 공통 의존성
+        implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
+        implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
+        implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+        implementation 'org.springframework.boot:spring-boot-starter-web'
+        testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    }
+}
+
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+    options.compilerArgs += ['-parameters']
 }
 
 tasks.named('test') {

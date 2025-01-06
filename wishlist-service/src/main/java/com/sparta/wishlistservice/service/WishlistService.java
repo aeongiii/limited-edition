@@ -1,156 +1,136 @@
 package com.sparta.wishlistservice.service;
 
+import com.sparta.common.dto.ProductResponse;
+import com.sparta.common.dto.UserResponse;
+import com.sparta.wishlistservice.client.ProductServiceClient;
+import com.sparta.wishlistservice.client.UserServiceClient;
 import com.sparta.wishlistservice.dto.WishlistResponse;
-import com.sparta.wishlistservice.entity.User;
-import com.sparta.wishlistservice.repository.UserRepository;
+import com.sparta.wishlistservice.entity.Wishlist;
 import com.sparta.wishlistservice.repository.WishlistRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class WishlistService {
 
     private final WishlistRepository wishlistRepository;
-    private final UserRepository userRepository;
+    private final UserServiceClient userServiceClient;
+    private final ProductServiceClient productServiceClient;
 
-    public WishlistService(WishlistRepository wishlistRepository, UserRepository userRepository) {
+    public WishlistService(WishlistRepository wishlistRepository, UserServiceClient userServiceClient, ProductServiceClient productServiceClient) {
         this.wishlistRepository = wishlistRepository;
-        this.userRepository = userRepository;
+        this.userServiceClient = userServiceClient;
+        this.productServiceClient = productServiceClient;
     }
 
     // 1. 위시리스트에 상품 추가
     public WishlistResponse addToWishlist(String email, long productId, int quantity) {
-        User user = validateUser(email); // 사용자 검증
-//        Product product = validateProduct(productId); // 상품 검증
-//        // 상품 노출 false
-//        if (!product.isVisible()) {
-//            throw new IllegalArgumentException("해당 상품은 숨김 처리되었습니다.");
-//        }
-//        // 품절된 경우
-//        if (product.getStockQuantity() == 0) {
-//            throw new IllegalArgumentException("해당 상품은 품절되었습니다.");
-//        }
-//        // 위시리스트에 추가 (또는 수량 업데이트)
-//        Wishlist wishlist = createOrUpdateWishlist(user, product, quantity);
-//        return createWishlistResponse(product, quantity);
+        UserResponse user = validateUser(email); // 사용자 검증
+        ProductResponse product = validateProduct(productId); // 상품 검증
+        System.out.println("===========================================");
+        System.out.println("상품의 노출 여부 값 : " + product.isVisible());
+        // 상품 노출 false
+        if (!product.isVisible()) {
+            throw new IllegalArgumentException("해당 상품은 숨김 처리되었습니다.");
+        }
+        // 품절된 경우
+        if (product.getStockQuantity() == 0) {
+            throw new IllegalArgumentException("해당 상품은 품절되었습니다.");
+        }
+        // 위시리스트에 추가 (또는 수량 업데이트)
+        Wishlist wishlist = createOrUpdateWishlist(user, product, quantity);
+        return createWishlistResponse(product, quantity);
 
-        // 임시
-        return new WishlistResponse(
-                productId,
-                "임시상품",
-                quantity,
-                10000,
-                "http://example.com/image.png",
-                "http://localhost:8085/product/" + productId
-        );
+
     }
 
     // 2. 위시리스트 목록 조회
     public List<WishlistResponse> getWishlist(String email) {
-//        Long userId = validateUser(email).getId(); // userId 가져오기
-//        List<Wishlist> wishlists = wishlistRepository.findAllByUserId(userId); // 목록 조회
-//
-//        // 위시리스트를 ResponseDto로 변환
-//        return wishlists.stream()
-//                .map(item ->  createWishlistResponse(item.getProduct(), item.getQuantity()))
-//                .collect(Collectors.toList());
+        Long userId = validateUser(email).getId(); // userId 가져오기
+        List<Wishlist> wishlists = wishlistRepository.findAllByUserId(userId); // 목록 조회
 
-        // 임시
-        return List.of(
-                new WishlistResponse(
-                        1L,
-                        "상품 A",
-                        2,
-                        20000,
-                        "http://example.com/productA.png",
-                        "http://localhost:8080/product/1"
-                ),
-                new WishlistResponse(
-                        2L,
-                        "상품 B",
-                        1,
-                        10000,
-                        "http://example.com/productB.png",
-                        "http://localhost:8080/product/2"
-                )
-        );
+        // 위시리스트를 ResponseDto로 변환
+        return wishlists.stream()
+                .map(item ->  {
+                    ProductResponse product = productServiceClient.getProductById(item.getProductId());
+                    return createWishlistResponse(product, item.getQuantity());
+                })
+                .collect(Collectors.toList());
     }
 
 
 
     // 3. 위시리스트 상품 수량 변경
     public WishlistResponse updateWishlistQuantity (String email, Long productId, int quantity) {
-//        User user = validateUser(email); // 사용자 검증
-//        Product product = validateProduct(productId); // 상품 검증
-//        Wishlist wishlist = validateWishlist(user, product); // 위시리스트에서 상품 찾기
-//
-//        // 수량 업데이트
-//        wishlist.setQuantity(quantity);
-//        wishlistRepository.save(wishlist);
-//
-//        // 반환할 wishlistResponse 만들기
-//        return createWishlistResponse(product, quantity);
+        UserResponse user = validateUser(email); // 사용자 검증
+        ProductResponse product = validateProduct(productId); // 상품 검증
+        Wishlist wishlist = validateWishlist(user, product); // 위시리스트에서 상품 찾기
 
+        // 수량 업데이트
+        wishlist.setQuantity(quantity);
+        wishlistRepository.save(wishlist);
 
-        return new WishlistResponse(
-                productId,
-                "임시 상품",
-                quantity,
-                10000, // 임시 가격
-                "http://example.com/image.png", // 임시 이미지 URL
-                "http://localhost:8080/product/" + productId // 임시 상세 URL
-        );
+        // 반환할 wishlistResponse 만들기
+        return createWishlistResponse(product, quantity);
     }
 
     // 4. 위시리스트에서 상품 삭제
     public void removeWishlistItem(String email, Long productId) {
-//        User user = validateUser(email); // 사용자 검증
-//        Product product = validateProduct(productId); // 상품 검증
-//        Wishlist wishlist = validateWishlist(user, product); // 위시리스트에서 상품 찾기
-//        // 삭제
-//        wishlistRepository.delete(wishlist);
+        UserResponse user = validateUser(email); // 사용자 검증
+        ProductResponse product = validateProduct(productId); // 상품 검증
+        Wishlist wishlist = validateWishlist(user, product); // 위시리스트에서 상품 찾기
+        // 삭제
+        wishlistRepository.delete(wishlist);
     }
 
 
     // =========================
 
     // 사용자 검증
-    private User validateUser(String email) {
-        return userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("회원정보를 찾을 수 없습니다."));
+    private UserResponse validateUser(String email) {
+        UserResponse user = userServiceClient.getUserByEmail(email);
+        if (user == null) {
+            throw new IllegalArgumentException("회원 정보를 찾을 수 없습니다.");
+        }
+        return user;
     }
 
     // id로 상품 검증
-//    private Product validateProduct(Long productId) {
-//        return productRepository.findById(productId)
-//                .orElseThrow(() -> new IllegalArgumentException("상품정보를 찾을 수 없습니다."));
-//    }
+    private ProductResponse validateProduct(Long productId) {
+        ProductResponse product = productServiceClient.getProductById(productId);
+        if (product == null) {
+            throw new IllegalArgumentException("상품 정보를 찾을 수 없습니다.");
+        }
+        System.out.println("validateProduct 응답 확인: " + product);
+        return product;
+    }
 
     // 위시리스트에 추가, 또는 수량 업데이트
-//    private Wishlist createOrUpdateWishlist(User user, Product product, int quantity) {
-//        Wishlist wishlist = wishlistRepository.findByUserAndProduct(user, product)
-//                .orElseGet(() -> new Wishlist(user, product, 0)); // 일단 기본수량 0으로 세팅
-//        wishlist.setQuantity(wishlist.getQuantity() + quantity); // 기존수량 + 새로 받은 수량 합치기
-//        wishlistRepository.save(wishlist);
-//        return wishlist;
-//    }
+    private Wishlist createOrUpdateWishlist(UserResponse user, ProductResponse product, int quantity) {
+        Wishlist wishlist = wishlistRepository.findByUserIdAndProductId(user.getId(), product.getId())
+                .orElseGet(() -> new Wishlist(user.getId(), product.getId(), 0)); // 일단 기본수량 0으로 세팅
+        wishlist.setQuantity(wishlist.getQuantity() + quantity); // 기존수량 + 새로 받은 수량 합치기
+        wishlistRepository.save(wishlist);
+        return wishlist;
+    }
 
     // user, product로 위시리스트 찾기
-//    private Wishlist validateWishlist(User user, Product product) {
-//        return wishlistRepository.findByUserAndProduct(user, product)
-//                .orElseThrow(() -> new IllegalArgumentException("위시리스트에 해당 상품이 없습니다."));
-//    }
+    private Wishlist validateWishlist(UserResponse user, ProductResponse product) {
+        return wishlistRepository.findByUserIdAndProductId(user.getId(), product.getId())
+                .orElseThrow(() -> new IllegalArgumentException("위시리스트에 해당 상품이 없습니다."));
+    }
 
     // 반환할 wishlistResponse 만들기
-//    private WishlistResponse createWishlistResponse(Product product, int quantity) {
-//        return new WishlistResponse(
-//                product.getId(),
-//                product.getName(),
-//                quantity,
-//                product.getPrice(),
-//                product.getImageUrl(),
-//                "http://localhost:8080/product/" + product.getId() // 상세정보 조회 url 만들어서 같이 반환
-//        );
-//    }
+    private WishlistResponse createWishlistResponse(ProductResponse product, int quantity) {
+        return new WishlistResponse(
+                product.getId(),
+                product.getName(),
+                quantity,
+                product.getPrice(),
+                product.getImageUrl(),
+                "http://localhost:8080/product/" + product.getId() // 상세정보 조회 url 만들어서 같이 반환
+        );
+    }
 }

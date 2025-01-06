@@ -1,8 +1,7 @@
 package com.sparta.orderservice.controller;
 
+import com.sparta.common.dto.OrderResponse;
 import com.sparta.orderservice.dto.OrderRequest;
-import com.sparta.orderservice.dto.OrderResponse;
-import com.sparta.orderservice.security.JwtTokenProvider;
 import com.sparta.orderservice.service.OrderService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,24 +14,18 @@ import java.util.Map;
 public class OrderController {
 
     private final OrderService orderService;
-    private final JwtTokenProvider jwtTokenProvider;
 
-    public OrderController(OrderService orderService, JwtTokenProvider jwtTokenProvider) {
+    public OrderController(OrderService orderService) {
         this.orderService = orderService;
-        this.jwtTokenProvider = jwtTokenProvider;
     }
 
     // 주문하기
     @PostMapping("/order")
     public ResponseEntity<?> createOrder(
             @RequestBody List<OrderRequest> orderRequest,
-            @CookieValue(name = "accessToken", required = false) String accessToken) {
-        // Access Token 검증
-        jwtTokenProvider.validateAccessToken(accessToken);
-        // 이메일 추출
-        String email = jwtTokenProvider.getUserIdFromToken(accessToken);
-        // 주문
+            @RequestHeader(name = "X-User-Email", required = false) String email) {
         try {
+            // 주문 로직
             OrderResponse orderResponse = orderService.createOrder(email, orderRequest);
             return ResponseEntity.ok(orderResponse);
         } catch (IllegalArgumentException e) {
@@ -44,11 +37,7 @@ public class OrderController {
 
     // 주문 목록 조회
     @GetMapping("/order")
-    public ResponseEntity<?> getOrderDetails(@CookieValue(name = "accessToken", required = false) String accessToken) {
-        // Access Token 검증
-        jwtTokenProvider.validateAccessToken(accessToken);
-        // 이메일 추출
-        String email = jwtTokenProvider.getUserIdFromToken(accessToken);
+    public ResponseEntity<?> getOrderDetails(@RequestHeader(name = "X-User-Email", required = false) String email) {
         // 주문 목록 조회
         List<OrderResponse> orderResponse = orderService.getOrderDeatils(email);
         return ResponseEntity.ok(orderResponse);
@@ -56,11 +45,7 @@ public class OrderController {
 
     // 취소/반품 목록 조회
     @GetMapping("/order/cancel-and-return")
-    public ResponseEntity<?> getCancelAndReturn(@CookieValue(name = "accessToken", required = false) String accessToken) {
-        // Access Token 검증
-        jwtTokenProvider.validateAccessToken(accessToken);
-        // 이메일 추출
-        String email = jwtTokenProvider.getUserIdFromToken(accessToken);
+    public ResponseEntity<?> getCancelAndReturn(@RequestHeader(name = "X-User-Email", required = false) String email) {
         // 주문 목록 조회
         List<OrderResponse> orderResponse = orderService.getCancelAndReturn(email);
         return ResponseEntity.ok(orderResponse);
@@ -70,13 +55,9 @@ public class OrderController {
     @PutMapping ("order/{orderId}/cancel")
     public ResponseEntity<?> cancelOrder(
             @PathVariable Long orderId,
-            @CookieValue(name = "accessToken", required = false) String accessToken) {
-        // Access Token 검증
-        jwtTokenProvider.validateAccessToken(accessToken);
-        // 이메일 추출
-        String email = jwtTokenProvider.getUserIdFromToken(accessToken);
-        // 주문 취소
+            @RequestHeader(name = "X-User-Email", required = false) String email) {
         try {
+            // 주문 취소
             String status = orderService.cancelOrder(email, orderId);
             return ResponseEntity.ok(Map.of("orderId", orderId, "status", status));
         } catch (IllegalArgumentException e) {
@@ -88,11 +69,7 @@ public class OrderController {
     @PutMapping("order/{orderId}/return")
     public ResponseEntity<?> returnOrder(
             @PathVariable Long orderId,
-            @CookieValue(name = "accessToken", required = false) String accessToken) {
-        // Access Token 검증
-        jwtTokenProvider.validateAccessToken(accessToken);
-        // 이메일 추출
-        String email = jwtTokenProvider.getUserIdFromToken(accessToken);
+            @RequestHeader(name = "X-User-Email", required = false) String email) {
         // 주문 취소
         try {
             String status = orderService.returnOrder(email, orderId);

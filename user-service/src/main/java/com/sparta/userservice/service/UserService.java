@@ -1,12 +1,18 @@
 package com.sparta.userservice.service;
 
-import com.sparta.userservice.dto.MyPageResponse;
+import com.sparta.common.dto.MyPageResponse;
+import com.sparta.common.dto.RecentOrderResponse;
+import com.sparta.common.dto.UserResponse;
+import com.sparta.common.dto.WishlistResponse;
+import com.sparta.common.exception.InvalidCredentialsException;
+import com.sparta.common.security.EncryptionUtil;
+import com.sparta.common.security.JwtTokenProvider;
+import com.sparta.common.util.AuthNumberManager;
+import com.sparta.userservice.client.OrderServiceClient;
+import com.sparta.userservice.client.ProductServiceClient;
+import com.sparta.userservice.client.WishlistServiceClient;
 import com.sparta.userservice.entity.User;
-import com.sparta.userservice.exception.InvalidCredentialsException;
 import com.sparta.userservice.repository.UserRepository;
-import com.sparta.userservice.security.EncryptionUtil;
-import com.sparta.userservice.security.JwtTokenProvider;
-import com.sparta.userservice.util.AuthNumberManager;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -27,14 +34,28 @@ public class UserService {
     private final AuthNumberManager authNumberManager;
     private final RedisTemplate<String, String> redisTemplate; // redis에 데이터 저장
     private final JwtTokenProvider jwtTokenProvider;
+    private final ProductServiceClient productServiceClient;
+    private final OrderServiceClient orderServiceClient;
+    private final WishlistServiceClient wishlistServiceClient;
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, AuthNumberManager authNumberManager, RedisTemplate<String, String> redisTemplate, JwtTokenProvider jwtTokenProvider, EncryptionUtil encryptionUtil) {
+
+    public UserService(UserRepository userRepository,
+                       PasswordEncoder passwordEncoder,
+                       AuthNumberManager authNumberManager,
+                       RedisTemplate<String, String> redisTemplate,
+                       JwtTokenProvider jwtTokenProvider,
+                       EncryptionUtil encryptionUtil,
+                       ProductServiceClient productServiceClient,
+                       OrderServiceClient orderServiceClient,
+                       WishlistServiceClient wishlistServiceClient) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.authNumberManager = authNumberManager;
         this.redisTemplate = redisTemplate;
         this.jwtTokenProvider = jwtTokenProvider;
-
+        this.productServiceClient = productServiceClient;
+        this.orderServiceClient = orderServiceClient;
+        this.wishlistServiceClient = wishlistServiceClient;
     }
 
     // 1. 회원가입
@@ -65,10 +86,9 @@ public class UserService {
 
     // 3. 로그아웃
     public String logoutUser(String accessToken) throws Exception {
-
         jwtTokenProvider.validateAccessToken(accessToken); // Access Token 검증
         // Refresh 토큰 삭제
-        String userId = jwtTokenProvider.getUserIdFromToken(accessToken);
+        String userId = jwtTokenProvider.getEmailFromToken(accessToken);
         redisTemplate.delete("refresh:" + userId);
         // HTTP-only Cookie에 설정된 Access Token 만료시키기 (만료된 쿠키로 덮어씌움)
         ResponseCookie deleteAccessTokenCookie = ResponseCookie.from("accessToken", "")
@@ -93,14 +113,34 @@ public class UserService {
         String decryptedName = EncryptionUtil.decrypt(user.getName());
         String decryptedAddress = EncryptionUtil.decrypt(user.getAddress());
         // 위시리스트, 주문내역 최신순 5개 가져오기
-//        List<WishlistResponse> wishlistResponseList = getTop5Wishlists(user);
-//        List<RecentOrderResponse> orderResponseList = getTop5Orders(user);
+        List<WishlistResponse> wishlistResponseList = getTop5Wishlists(user);
+        List<RecentOrderResponse> orderResponseList = getTop5Orders(user);
         // MypageResponse 생성
-//        return new MyPageResponse(decryptedEmail, decryptedName, decryptedAddress,
-//                user.getCreatedAt(), wishlistResponseList, orderResponseList);
-        // 임시
         return new MyPageResponse(decryptedEmail, decryptedName, decryptedAddress,
-                user.getCreatedAt(), null, null);
+                user.getCreatedAt(), wishlistResponseList, orderResponseList);
+    }
+
+    // user 객체 보내기
+    public UserResponse getUserByEmail(String email) {
+        try {
+        String encryptedEmail = EncryptionUtil.encrypt(email); // 입력 이메일 암호화
+        User user = userRepository.findByEmail(encryptedEmail)
+                .orElse(null);
+        if (user == null) {
+            throw new IllegalArgumentException("사용자를 찾을 수 없습니다.");
+        }
+        return new UserResponse(
+                user.getId(),
+                user.getEmail(),
+                user.getPassword(),
+                user.getName(),
+                user.getAddress(),
+                user.getCreatedAt()
+        );
+        } catch (Exception e) {
+            // 예외 처리
+            throw new RuntimeException("사용자 조회 중 오류가 발생했습니다.", e);
+        }
     }
 
 
@@ -221,27 +261,13 @@ public class UserService {
     }
 
     // 마이페이지 - 위시리스트 최신순 5개 가져오기
-//    private List<WishlistResponse> getTop5Wishlists(User user) {
-//        return wishlistRepository.findTop5ByUserIdOrderByCreatedAtDesc(user.getId())
-//                .stream()
-//                .map(wishlist -> new WishlistResponse(
-//                        wishlist.getProduct().getId(),
-//                        wishlist.getProduct().getName(),
-//                        wishlist.getQuantity(),
-//                        wishlist.getProduct().getPrice(),
-//                        wishlist.getProduct().getImageUrl(),
-//                        "http://localhost:8080/product/" + wishlist.getProduct().getId() // 상세정보 링크 생성
-//                )).toList();
-//    }
+    private List<WishlistResponse> getTop5Wishlists(User user) {
+        return wishlistServiceClient.getTop5Wishlist(user.getId());
+    }
 
     // 마이페이지 - 주문내역 최신순 5개 가져오기
-//    private List<RecentOrderResponse> getTop5Orders(User user) {
-//        return orderRepository.findTop5ByUserIdOrderByCreatedAtDesc(user.getId())
-//                .stream()
-//                .map(order -> new RecentOrderResponse(
-//                        order.getId(),
-//                        order.getStatus(),
-//                        order.getCreatedAt().toString()
-//                )).toList();
-//    }
+    private List<RecentOrderResponse> getTop5Orders(User user) {
+        return orderServiceClient.getTop5OrderList(user.getId());
+
+    }
 }
