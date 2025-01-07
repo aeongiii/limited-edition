@@ -19,7 +19,7 @@ public class OrderController {
         this.orderService = orderService;
     }
 
-    // 주문하기
+    // 주문 api : '주문중' 상태로 주문데이터 저장
     @PostMapping("/order")
     public ResponseEntity<?> createOrder(
             @RequestBody List<OrderRequest> orderRequest,

@@ -4,10 +4,7 @@ import com.sparta.paymentservice.dto.PaymentResponse;
 import com.sparta.paymentservice.service.PaymentService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 public class PaymentController {
@@ -18,13 +15,13 @@ public class PaymentController {
         this.paymentService = paymentService;
     }
 
-    // 결제하기
+    // 결제 진입 api : '결제중'으로 결제데이터 저장
     @PostMapping("/payment/{orderId}")
-    public ResponseEntity<?> payment(@PathVariable Long orderId,
+    public ResponseEntity<?> startPayment(@PathVariable Long orderId,
                                      @RequestHeader(name = "X-User-Email", required = false) String email) {
         try {
-            PaymentResponse response = paymentService.payment(email, orderId);
-            return ResponseEntity.status(HttpStatus.OK).body(response);
+            PaymentResponse response = paymentService.startPayment(email, orderId);
+            return ResponseEntity.status(HttpStatus.OK).body("결제 프로세스에 진입했습니다.");
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
         } catch (feign.FeignException e) {
@@ -34,5 +31,13 @@ public class PaymentController {
             // 기타 예외 처리
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("결제 중 오류가 발생했습니다.");
         }
+    }
+
+    // 결제 완료 api : '결제완료'로 변경
+    @PutMapping("/payment/{orderId}")
+    public ResponseEntity<?> endPayment(@PathVariable Long orderId,
+                                        @RequestHeader(name = "X-User-Email", required = false) String email) {
+        PaymentResponse response = paymentService.endPayment(email, orderId);
+        return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 }
