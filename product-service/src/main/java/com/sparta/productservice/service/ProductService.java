@@ -9,6 +9,8 @@ import com.sparta.productservice.repository.ProductRepository;
 import com.sparta.productservice.repository.ProductSnapshotRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public class ProductService {
 
@@ -31,7 +33,7 @@ public class ProductService {
             throw new IllegalArgumentException("해당 상품은 숨김 처리되었습니다.");
         }
         // 상품 품절 여부 확인
-        boolean isSoldOut = product.getStockQuantity() == 0;
+//        boolean isSoldOut = product.getStockQuantity() <= 0;
         // 상품 정보 반환
         return new ProductDetailResponse(
                     product.getId(),
@@ -39,7 +41,8 @@ public class ProductService {
                         product.getDescription(),
                         product.getPrice(),
                         product.getImageUrl(),
-                        isSoldOut,
+                        product.getStockQuantity(),
+                product.getStockQuantity() <= 0,
                     product.getLimitedType()
 
         );
@@ -90,6 +93,26 @@ public class ProductService {
                 product.getCreatedAt(),
                 product.getUpdatedAt()
         );
+    }
+
+    // 일반 / 선착순 상품 리스트 반환
+    public List<ProductDetailResponse> getProductList(String limitedType) {
+        List<Product> productList = productRepository.findByLimitedType(limitedType);
+        // Product 엔티티를 ProductDetailResponse로 변환
+        List<ProductDetailResponse> productDetailResponseList = productList.stream()
+                .filter(Product::isVisible) // 공개된 상품만
+                .map(product -> new ProductDetailResponse(
+                        product.getId(),
+                        product.getName(),
+                        product.getDescription(),
+                        product.getPrice(),
+                        product.getImageUrl(),
+                        product.getStockQuantity(),
+                        product.getStockQuantity() <= 0, // 재고가 0 이하일 때 sold out
+                        product.getLimitedType()
+                ))
+                .toList();
+        return productDetailResponseList;
     }
 
     // ProductSnapshot을 ProductSnapshotResponse로 변환

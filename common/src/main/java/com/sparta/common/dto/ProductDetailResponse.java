@@ -1,10 +1,12 @@
 package com.sparta.common.dto;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
+@AllArgsConstructor
 public class ProductDetailResponse {
 
     private final Long productId;
@@ -12,17 +14,8 @@ public class ProductDetailResponse {
     private final String description;
     private final int price;
     private final String imageUrl;
+    private final int stockQuantity;
     private final boolean isSoldOut;
     private final String limitedType;
 
-
-    public ProductDetailResponse(Long productId, String name, String description, int price, String imageUrl, boolean isSoldOut, String limitedType) {
-        this.productId = productId;
-        this.name = name;
-        this.description = description;
-        this.price = price;
-        this.imageUrl = imageUrl;
-        this.isSoldOut = isSoldOut;
-        this.limitedType = limitedType;
-    }
 }
