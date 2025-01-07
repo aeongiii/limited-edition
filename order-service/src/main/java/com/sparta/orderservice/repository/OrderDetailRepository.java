@@ -10,4 +10,6 @@ import java.util.List;
 public interface OrderDetailRepository extends JpaRepository<OrderDetail, Long> {
     // 주문 목록 조회
     List<OrderDetail> findAllByOrdersId(Long id);
+
+    void deleteByOrdersId(Long orderId);
 }

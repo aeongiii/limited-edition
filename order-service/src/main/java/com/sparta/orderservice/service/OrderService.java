@@ -333,4 +333,13 @@ public class OrderService {
                 orderItemResponses
         );
     }
+
+    // 결제 이탈 시 주문데이터 삭제
+    @Transactional
+    public void deleteOrderWithDetails(Long orderId) {
+        orderDetailRepository.deleteByOrdersId(orderId); // 자식 테이블의 데이터를 먼저 삭제
+        Orders order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("주문을 찾을 수 없습니다."));
+        orderRepository.delete(order);
+    }
 }
