@@ -7,6 +7,8 @@ import com.sparta.productservice.entity.Product;
 import com.sparta.productservice.entity.ProductSnapshot;
 import com.sparta.productservice.repository.ProductRepository;
 import com.sparta.productservice.repository.ProductSnapshotRepository;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -16,11 +18,12 @@ public class ProductService {
 
     private final ProductRepository productRepository;
     private final ProductSnapshotRepository productSnapshotRepository;
+    private final StringRedisTemplate redisTemplate;
 
-
-    public ProductService(ProductRepository productRepository, ProductSnapshotRepository productSnapshotRepository) {
+    public ProductService(ProductRepository productRepository, ProductSnapshotRepository productSnapshotRepository, StringRedisTemplate redisTemplate) {
         this.productRepository = productRepository;
         this.productSnapshotRepository = productSnapshotRepository;
+        this.redisTemplate = redisTemplate;
     }
 
     // 상품 상세정보 반환
@@ -142,8 +145,37 @@ public class ProductService {
 
     // 남은 재고 수량 확인
     public int getStockQuantity(long productId) {
+        String redisKey = "product:stock:" + productId;
+        Integer stockQuantity = getQuantityFromRedis(redisKey);
+        if (stockQuantity != null) {
+            return stockQuantity;
+        }
+        int newQuantity = getQuantityFromDatabase(productId);
+        saveQuantityToRedis(redisKey, newQuantity);
+        return newQuantity;
+    }
+
+
+    // ====================================
+
+    // redis에서 재고수량 조회
+    private Integer getQuantityFromRedis(String redisKey) {
+        ValueOperations<String, String> ops = redisTemplate.opsForValue();
+        String stockQuantity = ops.get(redisKey);
+        return (stockQuantity != null) ? Integer.parseInt(stockQuantity) : null;
+    }
+
+    // DB에서 재고 수량 조회
+    private int getQuantityFromDatabase(long productId) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException("상품이 존재하지 않습니다."));
         return product.getStockQuantity();
+    }
+
+    // Redis에 재고 수량 저장
+    private void saveQuantityToRedis(String redisKey, int stockQuantity) {
+        ValueOperations<String, String> ops = redisTemplate.opsForValue();
+        ops.set(redisKey, String.valueOf(stockQuantity));
+        System.out.println("Redis에 재고 수량을 저장했습니다.");
     }
 }
