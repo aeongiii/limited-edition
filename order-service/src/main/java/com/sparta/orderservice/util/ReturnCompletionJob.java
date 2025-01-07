@@ -33,7 +33,7 @@ public class ReturnCompletionJob implements Job {
             Orders order = orderRepository.findById(orderId)
                     .orElseThrow(() -> new IllegalArgumentException("주문 정보를 찾을 수 없습니다."));
             // "반품 완료"로 상태 변경
-            order.setStatus("반품 완료");
+            order.setStatus("반품완료");
             order.setUpdatedAt(LocalDateTime.now());
             orderRepository.save(order);
             // 재고 복구

@@ -11,7 +11,8 @@ CREATE TABLE `product` (
                            `is_visible` BOOLEAN DEFAULT TRUE,
                            `image_url` VARCHAR(255),
                            `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                           `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                           `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                           limited_type VARCHAR(20) NOT NULL DEFAULT 'unlimited'
 );
 
 CREATE TABLE `product_snapshot` (

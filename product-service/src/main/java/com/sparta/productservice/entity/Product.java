@@ -6,6 +6,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "product")
 @NoArgsConstructor
@@ -35,4 +37,13 @@ public class Product {
 
     @Column(nullable = false)
     private String imageUrl;
+
+    @Column(nullable = false)
+    private String limitedType = "unlimited";
+
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime createdAt = LocalDateTime.now(); // 등록 날짜
+
+    @Column
+    private LocalDateTime updatedAt = LocalDateTime.now(); // 수정 날짜
 }

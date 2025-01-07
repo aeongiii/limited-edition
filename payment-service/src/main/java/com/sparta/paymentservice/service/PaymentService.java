@@ -33,9 +33,9 @@ public class PaymentService {
             throw new IllegalArgumentException("이미 결제된 주문입니다.");
         }
         // 새로 저장할 payment 만들기
-        Payment payment = new Payment(order.getOrderId(), "결제 완료", order.getTotalAmount(), LocalDateTime.now(), null);
+        Payment payment = new Payment(order.getOrderId(), "결제완료", order.getTotalAmount(), LocalDateTime.now(), null);
         paymentRepository.save(payment);
-        System.out.println("결제 완료. orderId : " + orderId);
+        System.out.println("결제완료. orderId : " + orderId);
         return new PaymentResponse(orderId, payment.getPaymentStatus(), payment.getTotalAmount(), payment.getCreatedAt());
     }
 }

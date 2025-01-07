@@ -39,7 +39,8 @@ public class ProductService {
                         product.getDescription(),
                         product.getPrice(),
                         product.getImageUrl(),
-                        isSoldOut
+                        isSoldOut,
+                    product.getLimitedType()
 
         );
     }
@@ -62,7 +63,10 @@ public class ProductService {
                         productResponse.getPrice(),
                         productResponse.getStockQuantity(),
                         productResponse.isVisible(),
-                        productResponse.getImageUrl()
+                        productResponse.getImageUrl(),
+                        productResponse.getLimitedType(),
+                        productResponse.getCreatedAt(),
+                        productResponse.getUpdatedAt()
                 )
         );
         return productSnapshotRepository.save(snapshot);
@@ -81,7 +85,10 @@ public class ProductService {
                 product.getPrice(),
                 product.getStockQuantity(),
                 product.isVisible(),
-                product.getImageUrl()
+                product.getImageUrl(),
+                product.getLimitedType(),
+                product.getCreatedAt(),
+                product.getUpdatedAt()
         );
     }
 
@@ -94,7 +101,10 @@ public class ProductService {
                 productSnapshot.getProduct().getPrice(),
                 productSnapshot.getProduct().getStockQuantity(),
                 productSnapshot.getProduct().isVisible(),
-                productSnapshot.getProduct().getImageUrl()
+                productSnapshot.getProduct().getImageUrl(),
+                productSnapshot.getProduct().getLimitedType(),
+                productSnapshot.getProduct().getCreatedAt(),
+                productSnapshot.getProduct().getUpdatedAt()
         );
 
         return new ProductSnapshotResponse(

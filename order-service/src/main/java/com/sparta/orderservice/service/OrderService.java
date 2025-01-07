@@ -51,7 +51,7 @@ public class OrderService {
     public OrderResponse createOrder(String email, List<OrderRequest> orderItems) {
         UserResponse userResponse = userServiceClient.getUserEmail(email); // 사용자 검증
 
-        Orders order = new Orders(userResponse.getId(), "주문 완료", 0); // order 객체 생성, 총 금액 0으로 초기화
+        Orders order = new Orders(userResponse.getId(), "주문완료", 0); // order 객체 생성, 총 금액 0으로 초기화
         orderRepository.save(order);
 
         List<OrderDetail> orderDetails = processEachOrder(order, orderItems); // 상품 하나하나 주문처리
@@ -71,7 +71,7 @@ public class OrderService {
     @Transactional
     public List<OrderResponse> getOrderDeatils(String email) {
         // 특정 조건에 맞는 데이터를 List<OrderResponse>로 반환함
-        List<String> statusName = List.of("주문 완료", "배송중", "배송 완료");
+        List<String> statusName = List.of("주문중", "주문완료", "배송중", "배송완료");
         return getOrderResposeList(email, statusName);
     }
 
@@ -79,7 +79,7 @@ public class OrderService {
     @Transactional
     public List<OrderResponse> getCancelAndReturn(String email) {
         // 특정 조건에 맞는 데이터를 List<OrderResponse>로 반환함
-        List<String> statusName = List.of("취소 완료", "반품 신청", "반품 완료");
+        List<String> statusName = List.of("취소완료", "반품신청", "반품완료");
         return getOrderResposeList(email, statusName);
     }
 
@@ -89,13 +89,13 @@ public class OrderService {
         UserResponse userResponse = userServiceClient.getUserEmail(email); // 사용자 검증
         Orders orders = validateOrder(orderId); // 주문 검증
         // 취소 가능 상태인지
-        if (!"주문 완료".equals(orders.getStatus())) {
+        if (!"주문완료".equals(orders.getStatus())) {
             throw new IllegalArgumentException("주문을 취소할 수 없는 상태입니다.");
         }
         restoreEachStock(orderId); // 취소한 상품마다 재고 복구
-        changeOrderStatus(orders, "취소 완료"); // 주문 상태 변경
+        changeOrderStatus(orders, "취소완료"); // 주문 상태 변경
 
-        return "취소 완료";
+        return "취소완료";
     }
 
     // 5. 반품 처리
@@ -104,16 +104,16 @@ public class OrderService {
         UserResponse userResponse = userServiceClient.getUserEmail(email); // 사용자 검증
         Orders orders = validateOrder(orderId); // 주문 검증
         // 반품 가능 상태인지
-        if (!"배송 완료".equals(orders.getStatus())) {
+        if (!"배송완료".equals(orders.getStatus())) {
             throw new IllegalArgumentException("배송 완료된 상품만 반품 가능합니다.");
         }
         // 배송받은지 1일 이내인지
         if (orders.getUpdatedAt().plusDays(1).isBefore(LocalDateTime.now())) // updatedAt + 1일이 현재 시간보다 이전인지 확인
             throw new IllegalArgumentException("배송 완료 후 24시간이 지나 반품할 수 없습니다.");
-        changeOrderStatus(orders, "반품 신청"); // 주문 상태 변경
+        changeOrderStatus(orders, "반품신청"); // 주문 상태 변경
         scheduleReturnCompletionJob(orderId); // Quartz Job 등록 (24시간 후 주문상태 변경, 재고 복구)
 
-        return "반품 신청";
+        return "반품신청";
     }
 
 
@@ -281,12 +281,12 @@ public class OrderService {
             System.out.println("[배송중]으로 변경하는 Job이 등록되었습니다. Order ID: " + orderId);
 
             // 2일 뒤 [배송 완료] 상태로 변경하는 Job, Trigger 생성
-            JobDetail arriveJob = createJob_delivery("arriveJob-", "배송 완료", orderId);
+            JobDetail arriveJob = createJob_delivery("arriveJob-", "배송완료", orderId);
             Trigger arriveTrigger = createTrigger(arriveJob, "arriveTrigger-", orderId, 2);
 
             // [배송 완료] JobDetail과 Trigger로 스케줄링
             scheduler.scheduleJob(arriveJob, arriveTrigger);
-            System.out.println("[배송 완료]로 변경하는 Job이 등록되었습니다. Order ID: " + orderId);
+            System.out.println("[배송완료]로 변경하는 Job이 등록되었습니다. Order ID: " + orderId);
         } catch (Exception e) {
             throw new RuntimeException("Quartz Job 등록 중 오류 발생");
         }

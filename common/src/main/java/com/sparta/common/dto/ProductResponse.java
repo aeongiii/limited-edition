@@ -6,6 +6,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -21,22 +23,14 @@ public class ProductResponse {
     private boolean isVisible = true; // 기본값을 true로 설정
 
     private String imageUrl;
+    private String limitedType; // 새로 추가된 필드
+    private LocalDateTime createdAt; // 새로 추가된 필드
+    private LocalDateTime updatedAt; // 새로 추가된 필드
 
     public boolean isVisible() {
         return Boolean.TRUE.equals(isVisible); // null 방지 처리
     }
 
-    @Override
-    public String toString() {
-        return "ProductResponse{" +
-                "id=" + id +
-                ", name='" + name + '\'' +
-                ", description='" + description + '\'' +
-                ", price=" + price +
-                ", stockQuantity=" + stockQuantity +
-                ", isVisible=" + isVisible +
-                ", imageUrl='" + imageUrl + '\'' +
-                '}';
-    }
+
 
 }
