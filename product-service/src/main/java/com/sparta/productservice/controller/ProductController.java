@@ -46,4 +46,12 @@ public class ProductController {
         List<ProductDetailResponse> productList = productService.getProductList(limitedType);
         return ResponseEntity.ok(productList);
     }
+
+    // 상품별 남은 수량 확인
+    @GetMapping("/product/{productId}/quantity")
+    public ResponseEntity<?> getStockQuantity (@PathVariable long productId,
+                                               @RequestHeader(name = "X-User-Email", required = false) String email) {
+        int quantity = productService.getStockQuantity(productId);
+        return ResponseEntity.ok(quantity);
+    }
 }
