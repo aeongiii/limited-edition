@@ -57,6 +57,12 @@ public class ProductService {
                 .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
         product.setStockQuantity(quantity);
         productRepository.save(product);
+
+        // Redis에 재고 업데이트
+        String redisKey = "product:stock:" + productId;
+        saveQuantityToRedis(redisKey, quantity);
+
+        System.out.println("Redis에 재고 업데이트 완료");
     }
 
     // 스냅샷 생성, 저장
@@ -151,7 +157,7 @@ public class ProductService {
             return stockQuantity;
         }
         int newQuantity = getQuantityFromDatabase(productId);
-        saveQuantityToRedis(redisKey, newQuantity);
+        saveQuantityToRedis(redisKey, newQuantity); // redis 업데이트
         return newQuantity;
     }
 

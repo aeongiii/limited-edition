@@ -4,7 +4,7 @@ import com.sparta.common.dto.*;
 import com.sparta.orderservice.client.ProductServiceClient;
 import com.sparta.orderservice.client.UserServiceClient;
 import com.sparta.orderservice.client.WishlistServiceClient;
-import com.sparta.orderservice.dto.OrderRequest;
+import com.sparta.common.dto.OrderRequest;
 import com.sparta.orderservice.entity.OrderDetail;
 import com.sparta.orderservice.entity.Orders;
 import com.sparta.orderservice.repository.OrderDetailRepository;

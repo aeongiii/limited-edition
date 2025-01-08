@@ -1,5 +1,6 @@
 package com.sparta.orderservice.controller;
 
+import com.sparta.common.dto.OrderRequest;
 import com.sparta.common.dto.OrderResponse;
 import com.sparta.common.dto.RecentOrderResponse;
 import com.sparta.orderservice.entity.Orders;
@@ -25,6 +26,14 @@ public class OrderInternalController {
         this.orderService = orderService;
         this.orderRepository = orderRepository;
         this.orderDetailRepository = orderDetailRepository;
+    }
+
+    @PostMapping("/order")     // payment의 OrderServiceClient에서 들어오는 email 파라미터 괜찮은지?
+    public OrderResponse createOrder(@RequestHeader("X-User-Email") String email, @RequestBody List<OrderRequest> orderItems) {
+        System.out.println("OrderInternalController.createOrder로 요청이 들어왔습니다.");
+        OrderResponse order = orderService.createOrder(email, orderItems);
+        System.out.println("Order 생성 완료: " + order);
+        return order;
     }
 
     @GetMapping("/{orderId}")

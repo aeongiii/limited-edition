@@ -20,6 +20,12 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
     }
 
+    // 400 Bad Request - 결제 이탈
+    @ExceptionHandler(PaymentProcessException.class)
+    public ResponseEntity<String> handlePaymentProcessException(PaymentProcessException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getErrorMessage());
+    }
+
     // 500 Internal Server Error - 서버에서 처리할 수 없는 런타임 오류
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<String> handleRuntimeException(RuntimeException e) {

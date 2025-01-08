@@ -1,7 +1,7 @@
 package com.sparta.orderservice.controller;
 
 import com.sparta.common.dto.OrderResponse;
-import com.sparta.orderservice.dto.OrderRequest;
+import com.sparta.common.dto.OrderRequest;
 import com.sparta.orderservice.service.OrderService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
