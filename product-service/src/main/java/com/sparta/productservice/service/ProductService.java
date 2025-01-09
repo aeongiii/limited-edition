@@ -7,11 +7,14 @@ import com.sparta.productservice.entity.Product;
 import com.sparta.productservice.entity.ProductSnapshot;
 import com.sparta.productservice.repository.ProductRepository;
 import com.sparta.productservice.repository.ProductSnapshotRepository;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class ProductService {
@@ -19,11 +22,13 @@ public class ProductService {
     private final ProductRepository productRepository;
     private final ProductSnapshotRepository productSnapshotRepository;
     private final StringRedisTemplate redisTemplate;
+    private final RedissonClient redissonClient;
 
-    public ProductService(ProductRepository productRepository, ProductSnapshotRepository productSnapshotRepository, StringRedisTemplate redisTemplate) {
+    public ProductService(ProductRepository productRepository, ProductSnapshotRepository productSnapshotRepository, StringRedisTemplate redisTemplate, RedissonClient redissonClient) {
         this.productRepository = productRepository;
         this.productSnapshotRepository = productSnapshotRepository;
         this.redisTemplate = redisTemplate;
+        this.redissonClient = redissonClient;
     }
 
     // 상품 상세정보 반환
@@ -53,16 +58,34 @@ public class ProductService {
 
     // 재고 수량 업데이트
     public void updateProductStock(Long productId, Integer quantity) {
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
-        product.setStockQuantity(quantity);
-        productRepository.save(product);
+        String lockKey = "product:lock:"+productId; // 분산락 키 설정
+        RLock lock = redissonClient.getFairLock(lockKey);
+        System.out.println("분산락 키 설정 완료. lockKey : " + lockKey);
 
-        // Redis에 재고 업데이트
-        String redisKey = "product:stock:" + productId;
-        saveQuantityToRedis(redisKey, quantity);
+        try {
+            if (lock.tryLock(10, 5, TimeUnit.SECONDS)) { // 락 획득 시도 (10초 대기, 5초 유지)
+                System.out.println("락을 획득했습니다.");
+                Product product = productRepository.findById(productId)
+                        .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
+                product.setStockQuantity(quantity);
+                productRepository.save(product);
+                System.out.println("DB에 재고 업데이트 완료");
 
-        System.out.println("Redis에 재고 업데이트 완료");
+                // Redis에 재고 업데이트
+                String redisKey = "product:stock:" + productId;
+                saveQuantityToRedis(redisKey, quantity);
+                System.out.println("Redis에 재고 업데이트 완료");
+
+            } else {
+                // 대기시간(10초)동안 락 획득 실패
+                throw new RuntimeException("락 획득 실패 - 재고 업데이트 실패");
+            }
+        } catch (InterruptedException e) {
+            throw new RuntimeException("락 대기 중 인터럽트 발생", e);
+        } finally {
+            lock.unlock();
+            System.out.println("락을 해제했습니다.");
+        }
     }
 
     // 스냅샷 생성, 저장

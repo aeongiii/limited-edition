@@ -2,7 +2,7 @@ package com.sparta.paymentservice.controller;
 
 import com.sparta.common.dto.PaymentResponse;
 import com.sparta.common.exception.PaymentProcessException;
-import com.sparta.paymentservice.service.PaymentFacadeService;
+import com.sparta.paymentservice.service.PaymentProcessService;
 import com.sparta.paymentservice.service.PaymentService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,11 +12,11 @@ import org.springframework.web.bind.annotation.*;
 public class PaymentController {
 
     private final PaymentService paymentService;
-    private final PaymentFacadeService paymentFacadeService;
+    private final PaymentProcessService paymentProcessService;
 
-    public PaymentController(PaymentService paymentService, PaymentFacadeService paymentFacadeService) {
+    public PaymentController(PaymentService paymentService, PaymentProcessService paymentProcessService) {
         this.paymentService = paymentService;
-        this.paymentFacadeService = paymentFacadeService;
+        this.paymentProcessService = paymentProcessService;
     }
 
     // 결제 진입 api : '결제중'으로 결제데이터 저장
@@ -52,7 +52,7 @@ public class PaymentController {
             @RequestParam("productId") Long productId,
             @RequestParam("quantity") int quantity) {
         try {
-            paymentFacadeService.paymentProcess(email, productId, quantity);
+            paymentProcessService.paymentProcess(email, productId, quantity);
             return ResponseEntity.status(HttpStatus.OK).body("결제 프로세스 완료");
         } catch (PaymentProcessException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getErrorMessage());

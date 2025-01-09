@@ -23,6 +23,13 @@ public class ProductInternalController {
         this.productService = productService;
         this.productRepository = productRepository;
     }
+    // productSnapshotId로 productResponse 반환
+    @GetMapping("/product")
+    public ProductResponse getProductByProductId(Long productSnapshotId) {
+        Product product = productRepository.findById(productSnapshotId)
+                .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
+        return productService.getJustProductResponse(product.getId());
+    }
 
     // 상품 조회
     @GetMapping("/just/{productId}")

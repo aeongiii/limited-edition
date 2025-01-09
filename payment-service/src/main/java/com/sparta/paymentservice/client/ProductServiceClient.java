@@ -21,7 +21,7 @@ public interface ProductServiceClient {
 
     // 상품 조회
     @GetMapping("/just/{productId}")
-    ProductResponse getProductById(Long id);
+    ProductResponse getProductById(@PathVariable("productId")Long productId);
 
     // id로 스냅샷 찾기
     @GetMapping("/snapshot/{ProductSnapshotId}")

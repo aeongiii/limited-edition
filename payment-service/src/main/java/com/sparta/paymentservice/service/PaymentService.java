@@ -1,8 +1,8 @@
 package com.sparta.paymentservice.service;
 
-import com.sparta.common.dto.OrderItemResponse;
 import com.sparta.common.dto.OrderResponse;
 import com.sparta.common.dto.PaymentResponse;
+import com.sparta.common.dto.ProductResponse;
 import com.sparta.common.exception.PaymentProcessException;
 import com.sparta.paymentservice.client.OrderServiceClient;
 import com.sparta.paymentservice.client.ProductServiceClient;
@@ -39,9 +39,7 @@ public class PaymentService {
         checkForPaymentExistence(orderId);
         // 20% 확률로 결제 이탈
         if (leavePayment()) {
-            restoreStock(order); // 재고 복구
-            orderServiceClient.deleteOrder(orderId, email); // 주문 데이터 삭제
-            throw new PaymentProcessException("결제를 취소했습니다.");
+            throw new PaymentProcessException("사용자가 결제를 취소했습니다.");
         }
         // 새로 저장할 payment 만들기
         Payment payment = createAndSavePayment(order);
@@ -54,10 +52,6 @@ public class PaymentService {
         Payment payment = getPayment(orderId);
         // 20% 확률로 결제 이탈
         if (leavePayment()) {
-            OrderResponse order = getOrder(orderId, email);
-            restoreStock(order); // 재고 복구
-            orderServiceClient.deleteOrder(orderId, email); // 주문 데이터 삭제
-            deletePaymentByOrderId(orderId); // 결제 데이터 삭제
             throw new PaymentProcessException("한도 초과로 결제에 실패했습니다.");
         }
         payment.setPaymentStatus("결제완료");
@@ -115,10 +109,11 @@ public class PaymentService {
     }
 
     // 결제 이탈 시 재고 복구
-    public void restoreStock (OrderResponse order) {
-        for (OrderItemResponse orderItem : order.getOrderItems()) {
-            productServiceClient.restoreStock(orderItem.getProductSnapshotId(), orderItem.getQuantity());
-        }
+    public void restoreStock (Long productId, int quantity) {
+        ProductResponse product = productServiceClient.getProductById(productId);
+            // 복구할 최종 수량으로 입력 (상품별 기존 수량 + 복구할 수량)
+            int totalQuantity = product.getStockQuantity() + quantity;
+            productServiceClient.updateProductStock(product.getId(), totalQuantity);
     }
 
     // 결제 데이터 삭제
@@ -130,5 +125,10 @@ public class PaymentService {
         } else {
             System.out.println("결제 데이터 삭제 실패. 해당 orderId의 결제 데이터를 찾을 수 없습니다.");
         }
+    }
+
+    // 결제내역 있는지 찾기
+    public boolean existsByOrderId(Long orderId) {
+        return paymentRepository.existsByOrderId(orderId);
     }
 }
