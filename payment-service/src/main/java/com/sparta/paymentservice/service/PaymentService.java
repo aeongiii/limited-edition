@@ -1,5 +1,6 @@
 package com.sparta.paymentservice.service;
 
+import com.sparta.common.dto.OrderRequest;
 import com.sparta.common.dto.OrderResponse;
 import com.sparta.common.dto.PaymentResponse;
 import com.sparta.common.dto.ProductResponse;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 public class PaymentService {
@@ -31,7 +33,15 @@ public class PaymentService {
         this.productServiceClient = productServiceClient;
     }
 
-    // 결제 진입 api
+    // 주문 API 호출
+    @Transactional
+    public Long createOrder(String email, Long productId, int quantity) {
+        List<OrderRequest> orderRequests = List.of(new OrderRequest(productId, quantity));
+        OrderResponse orderResponse = orderServiceClient.createOrder(email, orderRequests);
+        return orderResponse.getOrderId();
+    }
+
+    // 결제 진입
     @Transactional
     public PaymentResponse startPayment(String email, Long orderId) {
         OrderResponse order = getOrder(orderId, email);
@@ -46,7 +56,7 @@ public class PaymentService {
         return changeToPaymentResponse(payment);
     }
 
-    // 결제 완료 api
+    // 결제 완료
     @Transactional
     public PaymentResponse endPayment(String email, Long orderId) {
         Payment payment = getPayment(orderId);
