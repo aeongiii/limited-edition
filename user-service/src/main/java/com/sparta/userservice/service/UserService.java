@@ -37,6 +37,7 @@ public class UserService {
     private final ProductServiceClient productServiceClient;
     private final OrderServiceClient orderServiceClient;
     private final WishlistServiceClient wishlistServiceClient;
+    private final EncryptionUtil encryptionUtil;
 
 
     public UserService(UserRepository userRepository,
@@ -47,7 +48,7 @@ public class UserService {
                        EncryptionUtil encryptionUtil,
                        ProductServiceClient productServiceClient,
                        OrderServiceClient orderServiceClient,
-                       WishlistServiceClient wishlistServiceClient) {
+                       WishlistServiceClient wishlistServiceClient, EncryptionUtil encryptionUtil1) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.authNumberManager = authNumberManager;
@@ -56,6 +57,7 @@ public class UserService {
         this.productServiceClient = productServiceClient;
         this.orderServiceClient = orderServiceClient;
         this.wishlistServiceClient = wishlistServiceClient;
+        this.encryptionUtil = encryptionUtil1;
     }
 
     // 1. 회원가입
@@ -109,9 +111,9 @@ public class UserService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("회원 정보를 찾을 수 없습니다."));
         // 개인정보 가져오기 (복호화)
-        String decryptedEmail = EncryptionUtil.decrypt(user.getEmail());
-        String decryptedName = EncryptionUtil.decrypt(user.getName());
-        String decryptedAddress = EncryptionUtil.decrypt(user.getAddress());
+        String decryptedEmail = encryptionUtil.encrypt(user.getEmail());
+        String decryptedName = encryptionUtil.encrypt(user.getName());
+        String decryptedAddress = encryptionUtil.decrypt(user.getAddress());
         // 위시리스트, 주문내역 최신순 5개 가져오기
         List<WishlistResponse> wishlistResponseList = getTop5Wishlists(user);
         List<RecentOrderResponse> orderResponseList = getTop5Orders(user);
@@ -123,7 +125,7 @@ public class UserService {
     // user 객체 보내기
     public UserResponse getUserByEmail(String email) {
         try {
-        String encryptedEmail = EncryptionUtil.encrypt(email); // 입력 이메일 암호화
+        String encryptedEmail = encryptionUtil.encrypt(email); // 입력 이메일 암호화
         User user = userRepository.findByEmail(encryptedEmail)
                 .orElse(null);
         if (user == null) {
@@ -148,7 +150,7 @@ public class UserService {
     // 회원가입 - 이메일 암호화
     private String encryptEmail(String email) {
         try {
-            return EncryptionUtil.encrypt(email);
+            return encryptionUtil.encrypt(email);
         } catch (Exception e) {
             throw new RuntimeException("이메일 암호화 중 오류가 발생했습니다.", e);
         }
@@ -173,7 +175,7 @@ public class UserService {
     // 회원가입 - 데이터 암호화
     private String encryptData(String data, String fieldName) {
         try {
-            return EncryptionUtil.encrypt(data);
+            return encryptionUtil.encrypt(data);
         } catch (Exception e) {
             throw new RuntimeException(fieldName + " 암호화 중 오류가 발생했습니다.", e);
         }
@@ -208,12 +210,12 @@ public class UserService {
     // 로그인 - 이메일, 비밀번호 인증
     private User authenticateUser(String email, String password) throws Exception {
         // 유저 존재하는지 확인
-        User user = userRepository.findByEmail(EncryptionUtil.encrypt(email))
+        User user = userRepository.findByEmail(encryptionUtil.encrypt(email))
                 .orElseThrow(() -> new InvalidCredentialsException("이메일 또는 비밀번호가 올바르지 않습니다."));
 
         // 이메일 복호화 + 비밀번호 일치하는지 확인
         try {
-            String decryptedEmail = EncryptionUtil.decrypt(user.getEmail()); // 이메일 복호화
+            String decryptedEmail = encryptionUtil.decrypt(user.getEmail()); // 이메일 복호화
             System.out.println("복호화된 이메일: " + decryptedEmail);
             System.out.println("입력받은 이메일: " + email);
             // 이메일이 다르면 예외 발생

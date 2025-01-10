@@ -43,8 +43,6 @@ dependencies {
     implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
     implementation 'io.jsonwebtoken:jjwt-impl:0.11.5'
     implementation 'io.jsonwebtoken:jjwt-jackson:0.11.5'
-    // .env.order 읽기
-    implementation("io.github.cdimascio:java-dotenv:5.2.2")
     // Quartz 스케줄러
     implementation 'org.springframework.boot:spring-boot-starter-quartz'
     // 공통 모듈

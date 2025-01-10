@@ -1,12 +1,12 @@
 package com.sparta.common.security;
 
-import io.github.cdimascio.dotenv.Dotenv;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import lombok.Getter;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
@@ -21,10 +21,8 @@ public class JwtTokenProvider {
     @Getter
     private final long refreshTokenExpirationTime = 1000 * 60 * 60 * 24 * 7;
 
-    // Base64 인코딩된 비밀키를 .env에서 읽어온다.
-    private static final Dotenv dotenv = Dotenv.configure().load(); // .env 파일 가져오기
-    private final String base64EncodedSecretKey = dotenv.get("JWT_SECRET_KEY"); // 키 가져오기
-
+    @Value("${JWT_SECRET_KEY}")
+    private String base64EncodedSecretKey;
     // 필요한 시점에 비밀키 생성
     private SecretKey getSecretKey() {
         if (base64EncodedSecretKey == null || base64EncodedSecretKey.isEmpty()) {

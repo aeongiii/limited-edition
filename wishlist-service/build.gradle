@@ -31,8 +31,6 @@ dependencies {
     implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
     implementation 'io.jsonwebtoken:jjwt-impl:0.11.5'
     implementation 'io.jsonwebtoken:jjwt-jackson:0.11.5'
-    // .env.wishlist 읽기
-    implementation("io.github.cdimascio:java-dotenv:5.2.2")
     // 공통모듈
     implementation project(':common')
     // OpenFeign 의존성 추가
