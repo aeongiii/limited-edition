@@ -11,6 +11,7 @@ import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -182,6 +183,19 @@ public class ProductService {
         int newQuantity = getQuantityFromDatabase(productId);
         saveQuantityToRedis(redisKey, newQuantity); // redis 업데이트
         return newQuantity;
+    }
+
+    // 매일 오후 2시에 상품 오픈
+    @Scheduled(cron = "0 0 14 * * ?")
+    public void openProduct() {
+        List<Product> productList = productRepository.findByLimitedType("limited");
+        for (Product product : productList) {
+            if (!product.isVisible()) {
+                product.setVisible(true);
+                productRepository.save(product);
+                System.out.println(product.getId() + "번 상품 오픈");
+            }
+        }
     }
 
 
