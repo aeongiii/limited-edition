@@ -4,6 +4,7 @@ import com.sparta.common.dto.MyPageResponse;
 import com.sparta.common.dto.RecentOrderResponse;
 import com.sparta.common.dto.UserResponse;
 import com.sparta.common.dto.WishlistResponse;
+import com.sparta.common.exception.DuplicateEmailException;
 import com.sparta.common.exception.InvalidCredentialsException;
 import com.sparta.common.security.EncryptionUtil;
 import com.sparta.common.security.JwtTokenProvider;
@@ -62,14 +63,12 @@ public class UserService {
 
     // 1. 회원가입
     public void registerUser(String email, String password, String name, String address, String authNumber) {
-        String encryptedEmail = encryptEmail(email); // 이메일 암호화
-        uniqueEmail(encryptedEmail); // 이메일 중복체크
-        validateAuthNumber(email, authNumber); // 인증번호 검증
-        String encodedPassword = passwordEncoder.encode(password); // 비밀번호 암호화 (해싱)
-        // 개인정보 암호화
+        String encryptedEmail = encryptEmail(email);
+        uniqueEmail(encryptedEmail);
+        validateAuthNumber(email, authNumber);
+        String encodedPassword = passwordEncoder.encode(password);
         String encryptedName = encryptData(name, "이름");
         String encryptedAddress = encryptData(address, "주소");
-        // 저장
         saveUser(encryptedEmail, encodedPassword, encryptedName, encryptedAddress);
     }
 
@@ -82,8 +81,8 @@ public class UserService {
         // Refresh Token Json으로 반환
         Map<String, String> response = Map.of("refreshToken", tokens.get("refreshToken"));
         return ResponseEntity.ok()
-                .header("Set-Cookie", accessTokenCookie.toString()) // 헤더에 쿠키 포함
-                .body(response); // 바디에 R토큰 포함
+                .header("Set-Cookie", accessTokenCookie.toString())
+                .body(response);
     }
 
     // 3. 로그아웃
@@ -96,7 +95,7 @@ public class UserService {
         ResponseCookie deleteAccessTokenCookie = ResponseCookie.from("accessToken", "")
                 .httpOnly(true) // HTTP-only 쿠키로 설정
                 .secure(false) // true : HTTPS를 통해서만 전송
-                .path("/")  // 모든 경로에서 쿠ㅡ키 유효
+                .path("/")  // 모든 경로에서 쿠키 유효
                 .maxAge(0) // 즉시 만료
                 .build();
         System.out.println("로그아웃 완료");
@@ -107,17 +106,13 @@ public class UserService {
     // 4. 마이페이지
     @Transactional(readOnly = true)
     public MyPageResponse getMypage(String email) throws Exception {
-        // 유저 검증
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("회원 정보를 찾을 수 없습니다."));
-        // 개인정보 가져오기 (복호화)
+                .orElseThrow(() -> new InvalidCredentialsException("회원 정보를 찾을 수 없습니다."));
         String decryptedEmail = encryptionUtil.encrypt(user.getEmail());
         String decryptedName = encryptionUtil.encrypt(user.getName());
         String decryptedAddress = encryptionUtil.decrypt(user.getAddress());
-        // 위시리스트, 주문내역 최신순 5개 가져오기
         List<WishlistResponse> wishlistResponseList = getTop5Wishlists(user);
         List<RecentOrderResponse> orderResponseList = getTop5Orders(user);
-        // MypageResponse 생성
         return new MyPageResponse(decryptedEmail, decryptedName, decryptedAddress,
                 user.getCreatedAt(), wishlistResponseList, orderResponseList);
     }
@@ -125,11 +120,11 @@ public class UserService {
     // user 객체 보내기
     public UserResponse getUserByEmail(String email) {
         try {
-        String encryptedEmail = encryptionUtil.encrypt(email); // 입력 이메일 암호화
+        String encryptedEmail = encryptionUtil.encrypt(email);
         User user = userRepository.findByEmail(encryptedEmail)
                 .orElse(null);
         if (user == null) {
-            throw new IllegalArgumentException("사용자를 찾을 수 없습니다.");
+            throw new InvalidCredentialsException("사용자를 찾을 수 없습니다.");
         }
         return new UserResponse(
                 user.getId(),
@@ -159,7 +154,7 @@ public class UserService {
     // 회원가입 - 이메일 중복 체크
     private void uniqueEmail(String encryptedEmail) {
         if (userRepository.existsByEmail(encryptedEmail)) {
-            throw new IllegalArgumentException("이미 가입된 이메일입니다.");
+            throw new DuplicateEmailException("이미 가입된 이메일입니다.");
         }
         System.out.println("이메일 중복체크 완료");
     }
@@ -167,7 +162,7 @@ public class UserService {
     // 회원가입 - 인증번호 검증
     private void validateAuthNumber(String email, String authNumber) {
         if (!authNumberManager.validateAuthNumber(email, authNumber)) {
-            throw new IllegalArgumentException("인증번호를 다시 확인해주세요.");
+            throw new InvalidCredentialsException("인증번호를 다시 확인해주세요.");
         }
         System.out.println("이메일 인증 완료");
     }
@@ -195,10 +190,10 @@ public class UserService {
 
     // 로그인 - A토큰, R토큰 생성
     private Map<String, String> createAccessTokenAndRefreshToken(String email, String password) throws Exception {
-        User user = authenticateUser(email, password); // 사용자 이메일, 비밀번호 인증
-        String accessToken = jwtTokenProvider.generateAccessToken(user.getEmail()); // A토큰 생성
-        String refreshToken = jwtTokenProvider.generateRefreshToken(user.getEmail()); // R토큰 생성
-        saveRefreshTokenToRedis(refreshToken, user); // R토큰 Redis에 저장
+        User user = authenticateUser(email, password);
+        String accessToken = jwtTokenProvider.generateAccessToken(user.getEmail());
+        String refreshToken = jwtTokenProvider.generateRefreshToken(user.getEmail());
+        saveRefreshTokenToRedis(refreshToken, user);
 
         // A토큰과 R토큰을 Map으로 반환
         Map<String, String> tokenMap = new HashMap<>();
@@ -215,7 +210,7 @@ public class UserService {
 
         // 이메일 복호화 + 비밀번호 일치하는지 확인
         try {
-            String decryptedEmail = encryptionUtil.decrypt(user.getEmail()); // 이메일 복호화
+            String decryptedEmail = encryptionUtil.decrypt(user.getEmail());
             System.out.println("복호화된 이메일: " + decryptedEmail);
             System.out.println("입력받은 이메일: " + email);
             // 이메일이 다르면 예외 발생
@@ -232,7 +227,7 @@ public class UserService {
 
         } catch (InvalidCredentialsException e) {
             System.out.println("인증 오류: " + e.getMessage());
-            throw e; // 클라이언트로 반환
+            throw e;
         } catch (Exception e) {
             System.out.println("예상치 못한 오류: " + e.getMessage());
             throw new RuntimeException("로그인 중 오류가 발생했습니다.", e);

@@ -1,5 +1,7 @@
 package com.sparta.userservice.service;
 
+import com.sparta.common.exception.DuplicateEmailException;
+import com.sparta.common.exception.MailSendFailureException;
 import com.sparta.userservice.repository.UserRepository;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
@@ -55,18 +57,17 @@ public class MailService {
 
     // 메일 전송
     public String sendMail(String sendEmail) throws MessagingException {
-        // 이메일 중복체크
         if (userRepository.existsByEmail(sendEmail)) {
-            throw new IllegalArgumentException("이미 가입된 이메일입니다.");
+            throw new DuplicateEmailException("이미 가입된 이메일입니다.");
         }
         System.out.println("이메일 중복체크 완료");
 
-        String number = createNumber(); // 인증번호 생성
-        MimeMessage message = createMail(sendEmail, number); // 메일 본문 생성
+        String number = createNumber();
+        MimeMessage message = createMail(sendEmail, number);
         try {
-            javaMailSender.send(message); // 발송
+            javaMailSender.send(message);
         } catch (MailException e) {
-            throw new IllegalArgumentException("이메일 인증번호 발송 중 오류가 발생했습니다.", e);
+            throw new MailSendFailureException("이메일 인증번호 발송 중 오류가 발생했습니다.", e);
         }
         System.out.println("인증번호 전송 완료. 본문내용: " + message);
         return number;

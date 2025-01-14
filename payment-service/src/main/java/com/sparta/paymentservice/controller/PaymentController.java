@@ -62,7 +62,7 @@ public class PaymentController {
             orchestratorService.startSaga(email, productId, quantity);
             return ResponseEntity.status(HttpStatus.OK).body("결제 프로세스 완료");
         } catch (PaymentProcessException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getErrorMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("결제 프로세스 중 오류 발생 : " + e.getMessage());
         }

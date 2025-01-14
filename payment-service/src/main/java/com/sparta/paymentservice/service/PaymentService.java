@@ -4,7 +4,7 @@ import com.sparta.common.dto.OrderRequest;
 import com.sparta.common.dto.OrderResponse;
 import com.sparta.common.dto.PaymentResponse;
 import com.sparta.common.dto.ProductResponse;
-import com.sparta.common.exception.PaymentProcessException;
+import com.sparta.common.exception.*;
 import com.sparta.paymentservice.client.OrderServiceClient;
 import com.sparta.paymentservice.client.ProductServiceClient;
 import com.sparta.paymentservice.entity.Payment;
@@ -51,7 +51,6 @@ public class PaymentService {
         if (leavePayment()) {
             throw new PaymentProcessException("사용자가 결제를 취소했습니다.");
         }
-        // 새로 저장할 payment 만들기
         Payment payment = createAndSavePayment(order);
         return changeToPaymentResponse(payment);
     }
@@ -74,7 +73,7 @@ public class PaymentService {
     private OrderResponse getOrder(Long orderId, String email) {
         OrderResponse order = orderServiceClient.getOrderById(orderId, email);
         if (order == null) {
-            throw new IllegalArgumentException("주문 정보를 찾을 수 없습니다.");
+            throw new OrderNotFoundException("주문 정보를 찾을 수 없습니다.");
         }
         return order;
     }
@@ -83,7 +82,7 @@ public class PaymentService {
     private Payment getPayment(Long orderId) {
         Payment payment = paymentRepository.getByOrderId(orderId);
         if (payment == null) {
-            throw new IllegalArgumentException("결제 정보를 찾을 수 없습니다.");
+            throw new PaymentNotFoundException("결제 정보를 찾을 수 없습니다.");
         }
         return payment;
     }
@@ -91,7 +90,7 @@ public class PaymentService {
     // 이미 결제된 주문인지
     private void checkForPaymentExistence(Long orderId) {
         if (paymentRepository.existsByOrderId(orderId)) {
-            throw new IllegalArgumentException("이미 결제된 주문입니다.");
+            throw new DuplicatePaymentException("이미 결제된 주문입니다.");
         }
     }
 
@@ -121,9 +120,11 @@ public class PaymentService {
     // 결제 이탈 시 재고 복구
     public void restoreStock (Long productId, int quantity) {
         ProductResponse product = productServiceClient.getProductById(productId);
-            // 복구할 최종 수량으로 입력 (상품별 기존 수량 + 복구할 수량)
-            int totalQuantity = product.getStockQuantity() + quantity;
-            productServiceClient.updateProductStock(product.getId(), totalQuantity);
+        if (product == null) {
+            throw new ProductNotFoundException("상품 정보를 찾을 수 없습니다. 상품 ID: " + productId);
+        }
+        int totalQuantity = product.getStockQuantity() + quantity;
+        productServiceClient.updateProductStock(product.getId(), totalQuantity);
     }
 
     // 결제 데이터 삭제
@@ -134,6 +135,7 @@ public class PaymentService {
             entityManager.flush();
         } else {
             System.out.println("결제 데이터 삭제 실패. 해당 orderId의 결제 데이터를 찾을 수 없습니다.");
+            throw new PaymentNotFoundException("결제 데이터를 찾을 수 없습니다. 주문 ID: " + orderId);
         }
     }
 

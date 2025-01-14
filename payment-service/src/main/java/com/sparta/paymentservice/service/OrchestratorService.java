@@ -1,6 +1,7 @@
 package com.sparta.paymentservice.service;
 
 import com.sparta.common.dto.OrderResponse;
+import com.sparta.common.exception.OrderNotFoundException;
 import com.sparta.common.exception.PaymentProcessException;
 import com.sparta.paymentservice.client.OrderServiceClient;
 import org.springframework.stereotype.Service;
@@ -24,10 +25,10 @@ public class OrchestratorService {
             paymentService.startPayment(email, orderId); // 2. 결제 진입 API 호출
             paymentService.endPayment(email, orderId); // 3. 결제 완료 API 호출
         } catch (PaymentProcessException e) {
-            rollbackSaga(email, orderId, productId, quantity); // 롤백
-            throw new RuntimeException(e);
+            rollbackSaga(email, orderId, productId, quantity);
+            throw new PaymentProcessException("결제 프로세스 중 문제가 발생했습니다: " + e.getMessage());
         } catch (Exception e) {
-            rollbackSaga(email, orderId, productId, quantity); // 롤백
+            rollbackSaga(email, orderId, productId, quantity);
             throw new RuntimeException("결제 프로세스 중 문제가 발생했습니다.", e);
         }
     }
@@ -38,10 +39,9 @@ public class OrchestratorService {
             try {
                 order = orderServiceClient.getOrderById(orderId, email);
             } catch (Exception e) {
-                throw new PaymentProcessException("주문 정보를 가져오는 중 오류 발생: " + e.getMessage());
+                throw new OrderNotFoundException("주문 정보를 가져오는 중 오류 발생: " + e.getMessage());
             }
 
-            // 결제 데이터 삭제
             try {
                 if (paymentService.existsByOrderId(orderId)) {
                     paymentService.deletePaymentByOrderId(orderId);
@@ -50,7 +50,6 @@ public class OrchestratorService {
                 throw new PaymentProcessException("결제 데이터를 삭제하는 중 오류 발생: " + e.getMessage());
             }
 
-            // 주문 데이터 삭제
             try {
                 if (order != null) {
                     orderServiceClient.deleteOrder(orderId, email);
@@ -59,7 +58,6 @@ public class OrchestratorService {
                 throw new PaymentProcessException("주문 데이터를 삭제하는 중 오류 발생: " + e.getMessage());
             }
 
-            // 재고 복구
             try {
                 if (order != null) {
                     paymentService.restoreStock(productId, quantity);

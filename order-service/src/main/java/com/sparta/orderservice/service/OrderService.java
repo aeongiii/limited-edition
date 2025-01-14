@@ -1,10 +1,13 @@
 package com.sparta.orderservice.service;
 
 import com.sparta.common.dto.*;
+import com.sparta.common.exception.InsufficientStockException;
+import com.sparta.common.exception.OrderNotFoundException;
+import com.sparta.common.exception.ProductNotFoundException;
+import com.sparta.common.exception.ProductSnapshotNotFoundException;
 import com.sparta.orderservice.client.ProductServiceClient;
 import com.sparta.orderservice.client.UserServiceClient;
 import com.sparta.orderservice.client.WishlistServiceClient;
-import com.sparta.common.dto.OrderRequest;
 import com.sparta.orderservice.entity.OrderDetail;
 import com.sparta.orderservice.entity.Orders;
 import com.sparta.orderservice.repository.OrderDetailRepository;
@@ -46,31 +49,153 @@ public class OrderService {
         this.wishlistServiceClient = wishlistServiceClient;
     }
 
+
+//    // 1. 주문하기
+//    @Transactional
+//    public OrderResponse createOrder(String email, List<OrderRequest> orderItems) {
+//        System.out.println("OrderService.createOrder : " + "주문하기 메서드를 시작합니다.");
+//        UserResponse userResponse = userServiceClient.getUserEmail(email); // 사용자 검증
+//        Orders order = new Orders(userResponse.getId(), "주문완료", 0); // order 객체 생성, 총 금액 0으로 초기화
+//        orderRepository.save(order);
+//
+////        List<OrderDetail> orderDetails = new ArrayList<>();
+//
+//        // 상품 하나하나 주문처리
+//        for (OrderRequest item : orderItems) {
+//            // 재고 감소 요청 이벤트 만들어서 Product쪽으로 발행
+//            StockDecrementRequestedEvent event = new StockDecrementRequestedEvent();
+//            event.setOrderId(order.getId());
+//            System.out.println("orderService에서 productService로 보낼 때 설정한 orderId : " + order.getId());
+//            event.setProductId(item.getProductId());
+//            System.out.println("orderService에서 productService로 보낼 때 설정한 productId : " + item.getProductId());
+//            event.setQuantity(item.getQuantity());
+//            event.setTotalOrderItems(orderItems.size());
+//            event.setUserResponse(userResponse);
+//            System.out.println("orderService에서 productService로 보낼 때 설정한 userID : " + userResponse.getId());
+//            event.setOrderItems(orderItems);
+//            orderEventProducer.sendStockDecrementRequestedEvent(event);
+//        }
+////        return new OrderResponse(order.getId(), order.getStatus(), totalAmount, orderItemResponses);
+//        return new OrderResponse(order.getId(), order.getStatus(), 9999, null);
+//    }
+
+//    // for문 안에서 남은 로직 수행 - 상품별로 재고 감소 완료 이벤트 처리
+//    @KafkaListener(
+//            topics = "product.events.completed",
+//            groupId = "order-group",
+//            containerFactory = "stockDecrementCompletedKafkaListenerContainerFactory"
+//    )
+//    public void handleStockDecrementCompletedEvent(StockDecrementCompletedEvent event) {
+//        System.out.println("OrderService.handleStockDecrementRequestedEvent에서 StockDecrementCompletedEvent 수신: " + event);
+//        System.out.println("productService로부터 전달받은 productId : " + event.getProductId());
+//        System.out.println("productService로부터 전달받은 orderId : " + event.getOrderId());
+//        System.out.println("productService로부터 전달받은 userId : " + event.getUserResponse().getId());
+//        Orders order = orderRepository.findById(event.getOrderId())
+//                .orElseThrow(() -> new IllegalArgumentException("주문을 찾을 수 없습니다."));
+//
+//        // 상품별 주문 금액 계산 및 저장
+//        ProductSnapshotResponse snapshotResponse = productServiceClient.getProductSnapshotById(event.getProductId());
+//        if (snapshotResponse == null) {
+//            throw new IllegalArgumentException("상품 스냅샷 정보를 찾을 수 없습니다.");
+//        }
+//        System.out.println("OrderService.handleStockDecrementCompletedEvent : " + "상품 스냅샷 저장 완료");
+//        int subtotalAmount = event.getQuantity() * snapshotResponse.getPrice();
+//        OrderDetail orderDetail = new OrderDetail(
+//                order,
+//                snapshotResponse.getId(),
+//                event.getQuantity(),
+//                subtotalAmount
+//        );
+//        orderDetailRepository.save(orderDetail);
+//        System.out.println("OrderService.handleStockDecrementCompletedEvent : " + "주문 상세정보 저장 완료");
+//
+//        // createOrder 메서드의 for문이 모두 끝났다면
+//        if (allItemsProcessed(order.getId(), event.getTotalOrderItems())) {
+//            finalizeOrder(order, event.getUserResponse(), event.getOrderItems());
+//        }
+//
+//    }
+
+//    // for문 끝났는지 여부 확인 (모든 상품 처리 완료 여부 확인)
+//    private boolean allItemsProcessed(Long orderId, int totalOrderItems) {
+//        long processedCount = orderDetailRepository.countByOrdersId(orderId);
+//        return processedCount == totalOrderItems; // 처리된 항목 수와 주문상품 개수 비교
+//    }
+
+//    // for문 끝났다면 - 최종 주문(orders) 처리
+//    private void finalizeOrder(Orders order, UserResponse userResponse, List<OrderRequest> orderItems) {
+//        System.out.println("OrderService.finalizeOrder : for문이 모두 끝나 최종 주문 처리를 진행합니다.");
+//        List<OrderDetail> orderDetails = orderDetailRepository.findAllByOrdersId(order.getId());
+//
+//        int totalAmount = calculateTotalAmount(orderDetails);
+//        order.setTotalAmount(totalAmount);
+//        orderRepository.save(order);
+//
+//        // ️ [주문 완료] -> [배송중] -> [배송 완료] 상태 자동 업데이트하는 job 생성
+//        scheduleOrderStatusJobs(order.getId());
+//        deleteWishlistItems(userResponse.getId(), orderItems); // 주문 완료 후 위시리스트에서 삭제
+//        List<OrderItemResponse> orderItemResponses = createOrderDetailList(orderDetails); // 반환할 주문 상세 response 생성
+//
+//    }
+
+
+
+
+
+
+
+
+
+
+
+
     // 1. 주문하기
     @Transactional
     public OrderResponse createOrder(String email, List<OrderRequest> orderItems) {
-        UserResponse userResponse = userServiceClient.getUserEmail(email); // 사용자 검증
+        UserResponse userResponse = userServiceClient.getUserEmail(email);
 
-        Orders order = new Orders(userResponse.getId(), "주문완료", 0); // order 객체 생성, 총 금액 0으로 초기화
+        Orders order = new Orders(userResponse.getId(), "주문완료", 0);
         orderRepository.save(order);
 
-        List<OrderDetail> orderDetails = processEachOrder(order, orderItems); // 상품 하나하나 주문처리
-        int totalAmount = calculateTotalAmount(orderDetails); // 총 가격 구하기
-        order.setTotalAmount(totalAmount); // 총 금액 업데이트
+        List<OrderDetail> orderDetails = processEachOrder(order, orderItems);
+        int totalAmount = calculateTotalAmount(orderDetails);
+        order.setTotalAmount(totalAmount);
         orderDetailRepository.saveAll(orderDetails);
 
         // [주문 완료] -> [배송중] -> [배송 완료] 상태 자동 업데이트하는 job 생성
         scheduleOrderStatusJobs(order.getId());
-        deleteWishlistItems(userResponse.getId(), orderItems); // 주문 완료 후 위시리스트에서 삭제
-        List<OrderItemResponse> orderItemResponses = createOrderDetailList(orderDetails); // 반환할 주문 상세 response 생성
+        deleteWishlistItems(userResponse.getId(), orderItems);
+        List<OrderItemResponse> orderItemResponses = createOrderDetailList(orderDetails);
 
         return new OrderResponse(order.getId(), order.getStatus(), totalAmount, orderItemResponses);
     }
 
+    // 주문 - 상품 하나하나 주문처리
+    private List<OrderDetail> processEachOrder(Orders order, List<OrderRequest> orderItems) {
+        List<OrderDetail> orderDetails = new ArrayList<>();
+
+        for (OrderRequest item : orderItems) {
+            ProductResponse productResponse = productServiceClient.getProductById(item.getProductId());
+            if(productResponse == null) {
+                throw new ProductNotFoundException("상품을 찾을 수 없습니다.");
+            }
+            if (productResponse.getStockQuantity() < item.getQuantity()) {
+                throw new InsufficientStockException("재고가 부족합니다. (남은 재고: " + productResponse.getStockQuantity() + ")");
+            }
+            ProductSnapshotResponse snapshot = productServiceClient.createProductSnapshot(productResponse);
+            productServiceClient.updateProductStock(productResponse.getId(), productResponse.getStockQuantity() - item.getQuantity());
+
+            int subtotalAmount = item.getQuantity() * productResponse.getPrice();
+            OrderDetail orderDetail = new OrderDetail(order, snapshot.getId(), item.getQuantity(), subtotalAmount);
+            orderDetails.add(orderDetail);
+        }
+        return orderDetails;
+    }
+
+
     // 2. 주문내역 확인
     @Transactional
     public List<OrderResponse> getOrderDeatils(String email) {
-        // 특정 조건에 맞는 데이터를 List<OrderResponse>로 반환함
         List<String> statusName = List.of("주문중", "주문완료", "배송중", "배송완료");
         return getOrderResposeList(email, statusName);
     }
@@ -78,7 +203,6 @@ public class OrderService {
     // 3. 취소, 반품내역 목록 조회
     @Transactional
     public List<OrderResponse> getCancelAndReturn(String email) {
-        // 특정 조건에 맞는 데이터를 List<OrderResponse>로 반환함
         List<String> statusName = List.of("취소완료", "반품신청", "반품완료");
         return getOrderResposeList(email, statusName);
     }
@@ -86,14 +210,13 @@ public class OrderService {
     // 4. 주문 취소하기
     @Transactional
     public String cancelOrder(String email, Long orderId) {
-        UserResponse userResponse = userServiceClient.getUserEmail(email); // 사용자 검증
-        Orders orders = validateOrder(orderId); // 주문 검증
-        // 취소 가능 상태인지
+        UserResponse userResponse = userServiceClient.getUserEmail(email);
+        Orders orders = validateOrder(orderId);
         if (!"주문완료".equals(orders.getStatus())) {
             throw new IllegalArgumentException("주문을 취소할 수 없는 상태입니다.");
         }
-        restoreEachStock(orderId); // 취소한 상품마다 재고 복구
-        changeOrderStatus(orders, "취소완료"); // 주문 상태 변경
+        restoreEachStock(orderId);
+        changeOrderStatus(orders, "취소완료");
 
         return "취소완료";
     }
@@ -101,17 +224,16 @@ public class OrderService {
     // 5. 반품 처리
     @Transactional
     public String returnOrder(String email, Long orderId) {
-        UserResponse userResponse = userServiceClient.getUserEmail(email); // 사용자 검증
-        Orders orders = validateOrder(orderId); // 주문 검증
-        // 반품 가능 상태인지
+        UserResponse userResponse = userServiceClient.getUserEmail(email);
+        Orders orders = validateOrder(orderId);
         if (!"배송완료".equals(orders.getStatus())) {
             throw new IllegalArgumentException("배송 완료된 상품만 반품 가능합니다.");
         }
-        // 배송받은지 1일 이내인지
-        if (orders.getUpdatedAt().plusDays(1).isBefore(LocalDateTime.now())) // updatedAt + 1일이 현재 시간보다 이전인지 확인
+        if (orders.getUpdatedAt().plusDays(1).isBefore(LocalDateTime.now()))
             throw new IllegalArgumentException("배송 완료 후 24시간이 지나 반품할 수 없습니다.");
-        changeOrderStatus(orders, "반품신청"); // 주문 상태 변경
-        scheduleReturnCompletionJob(orderId); // Quartz Job 등록 (24시간 후 주문상태 변경, 재고 복구)
+        changeOrderStatus(orders, "반품신청");
+        // Quartz Job 등록 (24시간 후 주문상태 변경, 재고 복구)
+        scheduleReturnCompletionJob(orderId);
 
         return "반품신청";
     }
@@ -133,37 +255,7 @@ public class OrderService {
     // 취소, 반품 - 주문 검증
     private Orders validateOrder(Long orderId) {
         return orderRepository.findById(orderId)
-                .orElseThrow(() -> new IllegalArgumentException("주문 정보를 찾을 수 없습니다."));
-    }
-
-    // 주문 - 상품 하나하나 주문처리
-    private List<OrderDetail> processEachOrder(Orders order, List<OrderRequest> orderItems) {
-        List<OrderDetail> orderDetails = new ArrayList<>();
-
-        // 상품 하나하나 처리
-        for (OrderRequest item : orderItems) {
-            ProductResponse productResponse = productServiceClient.getProductById(item.getProductId());
-            if(productResponse == null) {
-                throw new IllegalArgumentException("상품을 찾을 수 없습니다.");
-            }
-
-            // 상품 재고 확인
-            if (productResponse.getStockQuantity() < item.getQuantity()) {
-                throw new IllegalArgumentException("재고가 부족합니다. (남은 재고: " + productResponse.getStockQuantity() + ")");
-            }
-
-            // 스냅샷 생성, 저장
-            ProductSnapshotResponse snapshot = productServiceClient.createProductSnapshot(productResponse);
-
-            // 상품 재고 감소
-            productServiceClient.updateProductStock(productResponse.getId(), productResponse.getStockQuantity() - item.getQuantity());
-
-            // 상품별 주문 금액 계산 및 저장
-            int subtotalAmount = item.getQuantity() * productResponse.getPrice();
-            OrderDetail orderDetail = new OrderDetail(order, snapshot.getId(), item.getQuantity(), subtotalAmount);
-            orderDetails.add(orderDetail);
-        }
-        return orderDetails;
+                .orElseThrow(() -> new OrderNotFoundException("주문 정보를 찾을 수 없습니다."));
     }
 
     // 주문 - 총 가격 구하기
@@ -180,7 +272,7 @@ public class OrderService {
             Long productSnapshotId = orderDetail.getProductSnapshotId();
             ProductSnapshotResponse productSnapshot = productServiceClient.getProductSnapshotById(productSnapshotId);
             if (productSnapshot == null) {
-                throw new IllegalArgumentException("ProductSnapshot 정보를 찾을 수 없습니다. ProductSnapshotId : " + productSnapshotId);
+                throw new ProductSnapshotNotFoundException("ProductSnapshot 정보를 찾을 수 없습니다. ProductSnapshotId : " + productSnapshotId);
             }            Long productId = productSnapshot.getProductResponse().getId();
             String productName = productSnapshot.getName();
             int quantity = orderDetail.getQuantity();
