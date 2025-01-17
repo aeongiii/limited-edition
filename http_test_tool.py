@@ -19,6 +19,10 @@ end_payment_times = []
 correct_stock_updates = 0
 incorrect_stock_updates = 0
 
+# TPS 측정 변수
+start_time1, start_time2, start_time3= None, None, None
+end_time1, end_time2, end_time3 = None, None, None
+
 # 로그 파일 초기화
 def init_log_file():
     try:
@@ -73,16 +77,16 @@ def print_stats(response_times_list, api_name):
         avg_time = sum(response_times_list) / len(response_times_list)
         max_time = max(response_times_list)
         min_time = min(response_times_list)
-        log(f"[\n{api_name}] 응답 시간 통계:")
+        log(f"\n[{api_name}] 응답 시간 통계:")
         log(f"  평균 응답 시간: {avg_time:.5f} seconds")
         log(f"  최대 응답 시간: {max_time:.5f} seconds")
         log(f"  최소 응답 시간: {min_time:.5f} seconds")
     else:
-        log(f"[\n{api_name}] 데이터가 없습니다")
+        log(f"\n[{api_name}] 데이터가 없습니다")
 
 # 4. 메인 함수
 def main():
-    global correct_stock_updates, incorrect_stock_updates
+    global correct_stock_updates, incorrect_stock_updates, start_time1, end_time1, start_time2, end_time2, start_time3, end_time3
 
     # 로그 파일 초기화
     init_log_file()
@@ -100,8 +104,11 @@ def main():
     order_ids = {}
     expected_stock = 10000 # 기존 수량
 
+    # 테스트 시작 시간 기록
+    start_time1 = time.time()
+
 # 4-1. 주문 API + 남은 수량 조회 API 동시 실행
-    log("\n\n주문 및 재고 수량 조회 요청 전송 중...")
+    log("\n\n\n================= 주문 및 재고 수량 조회 요청 전송 중... =================")
     create_try, create_success, create_fail = 0, 0, 0
     stock_try, stock_success, stock_fail = 0, 0, 0
     product_id = 1  # 테스트할 상품 ID
@@ -122,6 +129,12 @@ def main():
         for user_index, user, future in futures:
             create_try += 1
             status, response = future.result()
+
+            # 숨김 상태 체크 및 로그 기록
+            if status == 400 and "숨김 처리되어 주문할 수 없습니다" in str(response):
+                log(f"{user_index}번째 유저의 주문 상품은 숨김 처리된 상태입니다.")
+                continue
+
             if status == 200 and response:
                 order_ids[user["email"]] = response["orderId"]
                 create_success += 1
@@ -149,15 +162,29 @@ def main():
             else:
                 stock_fail += 1
 
-    print_stats(create_order_times, "1. 주문하기 API")
+    # 테스트 종료 시간 기록
+    end_time1 = time.time()
+
+    # 통계 출력
+    print_stats(create_order_times, " 1. 주문하기 API")
     print_stats(stock_check_times, "2. 수량 조회 API")
     log(f"주문 요청: 시도={create_try}, 성공={create_success}, 실패={create_fail}")
     log(f"재고 수량 조회 요청: 시도={stock_try}, 성공={stock_success}, 실패={stock_fail}")
     log(f"\n정확한 재고 감소 확인: 성공={correct_stock_updates}, 실패={incorrect_stock_updates}")
 
+    # TPS 계산 및 출력
+    total_time = end_time1 - start_time1
+    tps = NUM_USERS / total_time if total_time > 0 else 0
+    log(f"\n총 요청 수: {NUM_USERS}")
+    log(f"테스트 소요 시간: {total_time:.2f} 초")
+    log(f"TPS (Transactions Per Second): {tps:.2f}")
+
+    # 테스트 시작 시간 기록
+    start_time2 = time.time()
+
     # 4-2. 결제 진입 API
-    log("\n\n결제 진입 요청 전송 중...")
-    start_try, start_success, start_fail = 0, 0, 0
+    log("\n\n\n================= 결제 진입 요청 전송 중... =================")
+    start_try, start_success, start_leave, start_fail = 0, 0, 0, 0
     with ThreadPoolExecutor(max_workers=CONCURRENT_REQUESTS) as executor:
         futures = []
         for user in users:
@@ -173,18 +200,33 @@ def main():
 
         for future in futures:
             start_try += 1
-            status, _ = future.result()
+            status, response = future.result()
             if status == 200:
                 start_success += 1
+            elif status == 400 and "사용자가 결제를 취소했습니다." in str(response):
+                start_leave += 1  # 이탈로 분류
             else:
                 start_fail += 1
 
     print_stats(start_payment_times, "3. 결제 진입 API")
-    log(f"결제 진입 요청: 시도={start_try}, 성공={start_success}, 실패={start_fail}")
+    log(f"결제 진입 요청: 시도={start_try}, 성공={start_success}, 이탈={start_leave}, 실패={start_fail}")
+
+    # 테스트 종료 시간 기록
+    end_time2 = time.time()
+
+    # TPS 계산 및 출력
+    total_time = end_time2 - start_time2
+    tps = NUM_USERS / total_time if total_time > 0 else 0
+    log(f"\n총 요청 수: {NUM_USERS}")
+    log(f"테스트 소요 시간: {total_time:.2f} 초")
+    log(f"TPS (Transactions Per Second): {tps:.2f}")
+
+    # 테스트 시작 시간 기록
+    start_time3 = time.time()
 
     # 4-3. 결제 완료 API
-    log("\n\n결제 완료 요청 전송 중...")
-    end_try, end_success, end_fail = 0, 0, 0
+    log("\n\n\n================= 결제 완료 요청 전송 중... =================")
+    end_try, end_success, end_leave, end_fail = 0, 0, 0, 0
     with ThreadPoolExecutor(max_workers=CONCURRENT_REQUESTS) as executor:
         futures = []
         for user in users:
@@ -200,16 +242,28 @@ def main():
 
         for future in futures:
             end_try += 1
-            status, _ = future.result()
+            status, response = future.result()
             if status == 200:
                 end_success += 1
+            elif status == 400 and "결제에 실패했습니다." in str(response):
+                end_leave += 1  # 이탈로 분류
             else:
                 end_fail += 1
 
     print_stats(end_payment_times, "4. 결제 완료 API")
-    log(f"결제 완료 요청: 시도={end_try}, 성공={end_success}, 실패={end_fail}")
+    log(f"결제 완료 요청: 시도={end_try}, 성공={end_success}, 이탈={end_leave}, 실패={end_fail}")
 
-    print("테스트 완료")
+    # 테스트 종료 시간 기록
+    end_time3 = time.time()
+
+    # TPS 계산 및 출력
+    total_time = end_time3 - start_time3
+    tps = NUM_USERS / total_time if total_time > 0 else 0
+    log(f"\n총 요청 수: {NUM_USERS}")
+    log(f"테스트 소요 시간: {total_time:.2f} 초")
+    log(f"TPS (Transactions Per Second): {tps:.2f}")
+
+    print("각 API 테스트 완료")
 
 # 메인 함수 실행
 if __name__ == "__main__":

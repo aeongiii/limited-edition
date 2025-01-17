@@ -12,6 +12,7 @@ import com.sparta.paymentservice.repository.PaymentRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -48,7 +49,7 @@ public class PaymentService {
         int totalAmount = order.getTotalAmount();
         checkForPaymentExistence(orderId);
         // 20% 확률로 결제 이탈
-        if (leavePayment()) {
+        if (leavePayment1()) {
             throw new PaymentProcessException("사용자가 결제를 취소했습니다.");
         }
         Payment payment = createAndSavePayment(order);
@@ -60,7 +61,7 @@ public class PaymentService {
     public PaymentResponse endPayment(String email, Long orderId) {
         Payment payment = getPayment(orderId);
         // 20% 확률로 결제 이탈
-        if (leavePayment()) {
+        if (leavePayment2()) {
             throw new PaymentProcessException("한도 초과로 결제에 실패했습니다.");
         }
         payment.setPaymentStatus("결제완료");
@@ -111,13 +112,20 @@ public class PaymentService {
     }
 
     // 20% 확률
-    private boolean leavePayment() {
+    private boolean leavePayment1() {
+        return Math.random() < 0.2;
+//        return true; // 이탈
+//        return false;
+    }
+
+    private boolean leavePayment2() {
         return Math.random() < 0.2;
 //        return true; // 이탈
 //        return false;
     }
 
     // 결제 이탈 시 재고 복구
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void restoreStock (Long productId, int quantity) {
         ProductResponse product = productServiceClient.getProductById(productId);
         if (product == null) {
@@ -128,6 +136,7 @@ public class PaymentService {
     }
 
     // 결제 데이터 삭제
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void deletePaymentByOrderId(Long orderId) {
         Payment payment = paymentRepository.getByOrderId(orderId);
         if (payment != null) {

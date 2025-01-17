@@ -17,6 +17,7 @@ import com.sparta.orderservice.util.UpdateOrderStatusJob;
 import org.quartz.*;
 import org.springframework.scheduling.quartz.SchedulerFactoryBean;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -179,6 +180,12 @@ public class OrderService {
             if(productResponse == null) {
                 throw new ProductNotFoundException("상품을 찾을 수 없습니다.");
             }
+
+            // 숨김 처리된 상품인지 확인
+            if (!productResponse.isVisible()) {
+                throw new IllegalArgumentException("상품이 숨김 처리되어 주문할 수 없습니다. 상품 ID: " + item.getProductId());
+            }
+
             if (productResponse.getStockQuantity() < item.getQuantity()) {
                 throw new InsufficientStockException("재고가 부족합니다. (남은 재고: " + productResponse.getStockQuantity() + ")");
             }
@@ -427,7 +434,7 @@ public class OrderService {
     }
 
     // 결제 이탈 시 주문데이터 삭제
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void deleteOrderWithDetails(Long orderId) {
         orderDetailRepository.deleteByOrdersId(orderId); // 자식 테이블의 데이터를 먼저 삭제
         Orders order = orderRepository.findById(orderId)
