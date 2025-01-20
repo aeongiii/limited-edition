@@ -76,7 +76,7 @@ public class ProductService {
 
                 // Redis에 재고 업데이트
                 String redisKey = "product:stock:" + productId;
-                saveQuantityToRedis(redisKey, quantity);
+                saveQuantityToRedis(redisKey, quantity, 300);
                 System.out.println("Redis에 재고 업데이트 완료");
 
             } else {
@@ -181,7 +181,7 @@ public class ProductService {
             return stockQuantity;
         }
         int newQuantity = getQuantityFromDatabase(productId);
-        saveQuantityToRedis(redisKey, newQuantity);
+        saveQuantityToRedis(redisKey, newQuantity, 300);
         return newQuantity;
     }
 
@@ -216,10 +216,10 @@ public class ProductService {
     }
 
     // Redis에 재고 수량 저장
-    private void saveQuantityToRedis(String redisKey, int stockQuantity) {
+    private void saveQuantityToRedis(String redisKey, int stockQuantity, long ttlSeconds) {
         ValueOperations<String, String> ops = redisTemplate.opsForValue();
-        ops.set(redisKey, String.valueOf(stockQuantity));
-        System.out.println("Redis에 재고 수량을 저장했습니다.");
+        ops.set(redisKey, String.valueOf(stockQuantity), ttlSeconds, TimeUnit.SECONDS);
+        System.out.println("Redis에 재고 수량을 저장했습니다. TTL: " + ttlSeconds + "초");
     }
 
 

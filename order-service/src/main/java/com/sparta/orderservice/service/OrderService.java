@@ -25,6 +25,7 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class OrderService {
@@ -440,5 +441,21 @@ public class OrderService {
         Orders order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("주문을 찾을 수 없습니다."));
         orderRepository.delete(order);
+    }
+
+    // 최신 5개 조회
+    public List<RecentOrderResponse> getTop5OrdersByEmail(String email) {
+        UserResponse userResponse = userServiceClient.getUserEmail(email); // FeignClient로 유저 정보 조회
+        if (userResponse == null) {
+            throw new IllegalArgumentException("해당 이메일을 가진 사용자가 존재하지 않습니다.");
+        }
+
+        List<Orders> ordersList = orderRepository.findTop5ByUserIdOrderByCreatedAtDesc(userResponse.getId());
+        return ordersList.stream()
+                .map(order -> new RecentOrderResponse(
+                        order.getId(),
+                        order.getStatus(),
+                        order.getCreatedAt().toString()
+                )).collect(Collectors.toList());
     }
 }

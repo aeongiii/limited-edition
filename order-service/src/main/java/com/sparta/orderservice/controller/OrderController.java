@@ -2,6 +2,7 @@ package com.sparta.orderservice.controller;
 
 import com.sparta.common.dto.OrderResponse;
 import com.sparta.common.dto.OrderRequest;
+import com.sparta.common.dto.RecentOrderResponse;
 import com.sparta.orderservice.service.OrderService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -78,4 +79,12 @@ public class OrderController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+
+    // 최신 5개
+    @GetMapping("/order/top5")
+    public ResponseEntity<?> getRecentOrders(@RequestHeader(name = "X-User-Email", required = false) String email) {
+        List<RecentOrderResponse> orderResponse = orderService.getTop5OrdersByEmail(email);
+        return ResponseEntity.ok(orderResponse);
+    }
+
 }
