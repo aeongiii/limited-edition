@@ -9,6 +9,8 @@ CREATE TABLE `orders` (
                           `total_amount` INT NOT NULL,
                           `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                           `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+
+                        INDEX `idx_user_created` (`user_id`, `created_at` DESC)
 );
 
 CREATE TABLE `order_detail` (
