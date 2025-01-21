@@ -188,11 +188,29 @@ def main():
                     correct_stock_updates += 1
                 else:
                     incorrect_stock_updates += 1
+                    log(f"[Race Condition 발생] 예상 재고: {expected_stock - 1}, 실제 재고: {stock_response}")
 
                 expected_stock -= 1
                 stock_success += 1
             else:
                 stock_fail += 1
+
+    # 2️⃣ Race Condition 발생 여부 확인 (초기 재고 - 주문 요청 수 vs. 최종 재고)
+    expected_final_stock = 10000 - create_success  # 예상 재고
+
+    # 모든 주문이 끝난 후, 최종적으로 남은 재고 조회
+    final_stock_status, final_stock_response = send_request(
+        get_stock_quantity_url.format(product_id=product_id),
+        "GET",
+        response_times_list=stock_check_times  # 기존 리스트 활용
+    )
+
+    if final_stock_status == 200 and final_stock_response is not None:
+        log(f"\n[최종 재고 확인] 예상 재고: {expected_final_stock}, 실제 재고: {final_stock_response}")
+
+        if final_stock_response != expected_final_stock:
+            incorrect_stock_updates += 1
+            log(f"[Race Condition 발생] 예상 재고 {expected_final_stock} vs 실제 재고 {final_stock_response}")
 
     # 테스트 종료 시간 기록
     end_time1 = time.time()
