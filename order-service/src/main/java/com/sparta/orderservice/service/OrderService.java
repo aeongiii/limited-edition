@@ -1,10 +1,7 @@
 package com.sparta.orderservice.service;
 
 import com.sparta.common.dto.*;
-import com.sparta.common.exception.InsufficientStockException;
-import com.sparta.common.exception.OrderNotFoundException;
-import com.sparta.common.exception.ProductNotFoundException;
-import com.sparta.common.exception.ProductSnapshotNotFoundException;
+import com.sparta.common.exception.*;
 import com.sparta.orderservice.client.ProductServiceClient;
 import com.sparta.orderservice.client.UserServiceClient;
 import com.sparta.orderservice.client.WishlistServiceClient;
@@ -15,6 +12,8 @@ import com.sparta.orderservice.repository.OrderRepository;
 import com.sparta.orderservice.util.ReturnCompletionJob;
 import com.sparta.orderservice.util.UpdateOrderStatusJob;
 import org.quartz.*;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.scheduling.quartz.SchedulerFactoryBean;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -23,8 +22,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Service
@@ -36,19 +37,21 @@ public class OrderService {
     private final UserServiceClient userServiceClient;
     private final ProductServiceClient productServiceClient;
     private final WishlistServiceClient wishlistServiceClient;
+    private final RedissonClient redissonClient; // Redisson 클라이언트 추가
 
 
     public OrderService(OrderRepository orderRepository,
                         OrderDetailRepository orderDetailRepository,
                         SchedulerFactoryBean schedulerFactoryBean,
                         UserServiceClient userServiceClient,
-                        ProductServiceClient productServiceClient, WishlistServiceClient wishlistServiceClient) {
+                        ProductServiceClient productServiceClient, WishlistServiceClient wishlistServiceClient, RedissonClient redissonClient) {
         this.orderRepository = orderRepository;
         this.orderDetailRepository = orderDetailRepository;
         this.schedulerFactoryBean = schedulerFactoryBean;
         this.userServiceClient = userServiceClient;
         this.productServiceClient = productServiceClient;
         this.wishlistServiceClient = wishlistServiceClient;
+        this.redissonClient = redissonClient;
     }
 
 
@@ -159,17 +162,50 @@ public class OrderService {
         Orders order = new Orders(userResponse.getId(), "주문완료", 0);
         orderRepository.save(order);
 
-        List<OrderDetail> orderDetails = processEachOrder(order, orderItems);
-        int totalAmount = calculateTotalAmount(orderDetails);
-        order.setTotalAmount(totalAmount);
-        orderDetailRepository.saveAll(orderDetails);
+        List<OrderDetail> orderDetails = new ArrayList<>();
+        int totalAmount = 0;
 
-        // [주문 완료] -> [배송중] -> [배송 완료] 상태 자동 업데이트하는 job 생성
-        scheduleOrderStatusJobs(order.getId());
-        deleteWishlistItems(userResponse.getId(), orderItems);
-        List<OrderItemResponse> orderItemResponses = createOrderDetailList(orderDetails);
+        orderItems.sort(Comparator.comparing(OrderRequest::getProductId));
+        // 상품별 락 생성
+        List<RLock> locks = new ArrayList<>();
+        for (OrderRequest item : orderItems) {
+            locks.add(redissonClient.getLock("order:lock:" + item.getProductId()));
+            System.out.println("상품별 Lock 객체 생성 중. productId : " + item.getProductId());
+        }
 
-        return new OrderResponse(order.getId(), order.getStatus(), totalAmount, orderItemResponses);
+        // RMultiLock - 여러 락을 한번에 획득
+        RLock[]  lockArray = locks.toArray(new RLock[0]);
+        RLock multiLock = redissonClient.getMultiLock(lockArray);
+        System.out.println("RMultiLock 획득 완료");
+
+        boolean acquired = false;
+
+        try {
+            acquired = multiLock.tryLock(10, 5, TimeUnit.SECONDS);
+            if (!acquired) {
+                throw new OrderCreateException("락 획득 실패 - 주문 생성 실패");
+            }
+            orderDetails = processEachOrder(order, orderItems);
+            totalAmount = calculateTotalAmount(orderDetails);
+            order.setTotalAmount(totalAmount);
+            orderDetailRepository.saveAll(orderDetails);
+
+            // [주문 완료] -> [배송중] -> [배송 완료] 상태 자동 업데이트하는 job 생성
+            scheduleOrderStatusJobs(order.getId());
+            deleteWishlistItems(userResponse.getId(), orderItems);
+            List<OrderItemResponse> orderItemResponses = createOrderDetailList(orderDetails);
+
+            return new OrderResponse(order.getId(), order.getStatus(), totalAmount, orderItemResponses);
+
+        } catch (InterruptedException e) {
+            throw new OrderCreateException("락 대기 중 인터럽트 발생");
+        } finally {
+            if (acquired) {
+                multiLock.unlock();
+                System.out.println("주문 API에서 락을 해제했습니다.");
+            }
+        }
+
     }
 
     // 주문 - 상품 하나하나 주문처리

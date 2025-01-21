@@ -60,10 +60,12 @@ public class ProductService {
     public void updateProductStock(Long productId, Integer quantity) {
         String lockKey = "product:lock:"+productId; // 분산락 키 설정
         RLock lock = redissonClient.getFairLock(lockKey);
+        boolean locked = false;
         System.out.println("분산락 키 설정 완료. lockKey : " + lockKey);
 
         try {
             if (lock.tryLock(10, 5, TimeUnit.SECONDS)) { // 락 획득 시도 (10초 대기, 5초 유지)
+                locked = true;
                 System.out.println("락을 획득했습니다.");
                 Product product = productRepository.findById(productId)
                         .orElseThrow(() -> new ProductNotFoundException("상품을 찾을 수 없습니다."));
@@ -86,8 +88,10 @@ public class ProductService {
         } catch (InterruptedException e) {
             throw new StockUpdateException("락 대기 중 인터럽트 발생");
         } finally {
-            lock.unlock();
-            System.out.println("락을 해제했습니다.");
+            if (locked) {
+                lock.unlock();
+                System.out.println("락을 해제했습니다.");
+            }
         }
     }
 

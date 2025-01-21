@@ -123,6 +123,12 @@ public class GlobalExceptionHandler {
         return createErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage(), request);
     }
 
+    @ExceptionHandler(OrderCreateException.class)
+    public ResponseEntity<Map<String, Object>> handleOrderCreateException(
+            OrderCreateException e, HttpServletRequest request) {
+        return createErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage(), request);
+    }
+
     // ===============================
     // 공통 응답 생성 메서드
     // ===============================
