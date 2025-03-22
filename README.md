@@ -73,8 +73,7 @@ docker-compose up -d
 
 ## **🔍 아키텍처**
 
-![title](https://github.com/user-attachments/assets/e5039d45-f7f7-4395-942b-95f12613ea51)
-
+![Image](https://github.com/user-attachments/assets/250f70db-07d0-4820-b67d-ed85f1be3f7e)
 
 <br>
 
