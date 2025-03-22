@@ -11,8 +11,6 @@ public interface ProductServiceClient {
     @GetMapping("/just/{productId}")
     ProductResponse getProductById(@PathVariable Long productId);
 
-    @PutMapping("/{productId}/update-stock")
-    void updateProductStock(@PathVariable Long productId, @RequestParam int quantity);
 
     @PostMapping("/snapshot")
     ProductSnapshotResponse createProductSnapshot(@RequestBody ProductResponse productResponse);

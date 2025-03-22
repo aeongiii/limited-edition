@@ -11,9 +11,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 @FeignClient(name = "product-service", url = "http://localhost:8082/api/internal/product")
 public interface ProductServiceClient {
 
-    // 재고 업데이트
-    @PutMapping("/{productId}/update-stock")
-    void updateProductStock(@PathVariable Long productId, @RequestParam int quantity);
 
     // 재고 복구
     @PutMapping("/{productSnapshotId}/restore")

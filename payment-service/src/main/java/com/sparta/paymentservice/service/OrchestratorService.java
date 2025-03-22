@@ -35,6 +35,8 @@ public class OrchestratorService {
 
     public void rollbackSaga(String email, Long orderId, Long productId, int quantity) {
         try {
+            if (orderId == null) return;
+
             OrderResponse order = null;
             try {
                 order = orderServiceClient.getOrderById(orderId, email);

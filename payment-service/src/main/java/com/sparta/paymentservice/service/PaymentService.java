@@ -132,7 +132,6 @@ public class PaymentService {
             throw new ProductNotFoundException("상품 정보를 찾을 수 없습니다. 상품 ID: " + productId);
         }
         int totalQuantity = product.getStockQuantity() + quantity;
-        productServiceClient.updateProductStock(product.getId(), totalQuantity);
     }
 
     // 결제 데이터 삭제

@@ -43,12 +43,6 @@ public class ProductInternalController {
         return productService.getProductDetails(productId);
     }
 
-    // 상품 재고 업데이트
-    @PutMapping("/{productId}/update-stock")
-    public void updateProductStock(@PathVariable Long productId, @RequestParam int quantity) {
-        productService.updateProductStock(productId, quantity);
-    }
-
     // 스냅샷 생성, 저장
     @PostMapping("/snapshot")
     public ProductSnapshotResponse createProductSnapshot(@RequestBody ProductResponse productResponse) {
@@ -72,7 +66,6 @@ public class ProductInternalController {
         Product product = productSnapshot.getProduct();
         // 업데이트할 재고
         int totalQuantity = product.getStockQuantity() + quantity;
-        productService.updateProductStock(product.getId(), totalQuantity);
     }
 
 }

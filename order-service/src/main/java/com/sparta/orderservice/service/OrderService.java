@@ -2,6 +2,8 @@ package com.sparta.orderservice.service;
 
 import com.sparta.common.dto.*;
 import com.sparta.common.exception.*;
+import com.sparta.common.kafkaDto.StockUpdateFailedEvent;
+import com.sparta.common.kafkaDto.StockUpdatedEvent;
 import com.sparta.orderservice.client.ProductServiceClient;
 import com.sparta.orderservice.client.UserServiceClient;
 import com.sparta.orderservice.client.WishlistServiceClient;
@@ -37,14 +39,18 @@ public class OrderService {
     private final UserServiceClient userServiceClient;
     private final ProductServiceClient productServiceClient;
     private final WishlistServiceClient wishlistServiceClient;
-    private final RedissonClient redissonClient; // Redisson 클라이언트 추가
+    private final RedissonClient redissonClient;
+    private final KafkaProducer kafkaProducer;
 
 
     public OrderService(OrderRepository orderRepository,
                         OrderDetailRepository orderDetailRepository,
                         SchedulerFactoryBean schedulerFactoryBean,
                         UserServiceClient userServiceClient,
-                        ProductServiceClient productServiceClient, WishlistServiceClient wishlistServiceClient, RedissonClient redissonClient) {
+                        ProductServiceClient productServiceClient,
+                        WishlistServiceClient wishlistServiceClient,
+                        RedissonClient redissonClient,
+                        KafkaProducer kafkaProducer) {
         this.orderRepository = orderRepository;
         this.orderDetailRepository = orderDetailRepository;
         this.schedulerFactoryBean = schedulerFactoryBean;
@@ -52,107 +58,8 @@ public class OrderService {
         this.productServiceClient = productServiceClient;
         this.wishlistServiceClient = wishlistServiceClient;
         this.redissonClient = redissonClient;
+        this.kafkaProducer = kafkaProducer;
     }
-
-
-//    // 1. 주문하기
-//    @Transactional
-//    public OrderResponse createOrder(String email, List<OrderRequest> orderItems) {
-//        System.out.println("OrderService.createOrder : " + "주문하기 메서드를 시작합니다.");
-//        UserResponse userResponse = userServiceClient.getUserEmail(email); // 사용자 검증
-//        Orders order = new Orders(userResponse.getId(), "주문완료", 0); // order 객체 생성, 총 금액 0으로 초기화
-//        orderRepository.save(order);
-//
-////        List<OrderDetail> orderDetails = new ArrayList<>();
-//
-//        // 상품 하나하나 주문처리
-//        for (OrderRequest item : orderItems) {
-//            // 재고 감소 요청 이벤트 만들어서 Product쪽으로 발행
-//            StockDecrementRequestedEvent event = new StockDecrementRequestedEvent();
-//            event.setOrderId(order.getId());
-//            System.out.println("orderService에서 productService로 보낼 때 설정한 orderId : " + order.getId());
-//            event.setProductId(item.getProductId());
-//            System.out.println("orderService에서 productService로 보낼 때 설정한 productId : " + item.getProductId());
-//            event.setQuantity(item.getQuantity());
-//            event.setTotalOrderItems(orderItems.size());
-//            event.setUserResponse(userResponse);
-//            System.out.println("orderService에서 productService로 보낼 때 설정한 userID : " + userResponse.getId());
-//            event.setOrderItems(orderItems);
-//            orderEventProducer.sendStockDecrementRequestedEvent(event);
-//        }
-////        return new OrderResponse(order.getId(), order.getStatus(), totalAmount, orderItemResponses);
-//        return new OrderResponse(order.getId(), order.getStatus(), 9999, null);
-//    }
-
-//    // for문 안에서 남은 로직 수행 - 상품별로 재고 감소 완료 이벤트 처리
-//    @KafkaListener(
-//            topics = "product.events.completed",
-//            groupId = "order-group",
-//            containerFactory = "stockDecrementCompletedKafkaListenerContainerFactory"
-//    )
-//    public void handleStockDecrementCompletedEvent(StockDecrementCompletedEvent event) {
-//        System.out.println("OrderService.handleStockDecrementRequestedEvent에서 StockDecrementCompletedEvent 수신: " + event);
-//        System.out.println("productService로부터 전달받은 productId : " + event.getProductId());
-//        System.out.println("productService로부터 전달받은 orderId : " + event.getOrderId());
-//        System.out.println("productService로부터 전달받은 userId : " + event.getUserResponse().getId());
-//        Orders order = orderRepository.findById(event.getOrderId())
-//                .orElseThrow(() -> new IllegalArgumentException("주문을 찾을 수 없습니다."));
-//
-//        // 상품별 주문 금액 계산 및 저장
-//        ProductSnapshotResponse snapshotResponse = productServiceClient.getProductSnapshotById(event.getProductId());
-//        if (snapshotResponse == null) {
-//            throw new IllegalArgumentException("상품 스냅샷 정보를 찾을 수 없습니다.");
-//        }
-//        System.out.println("OrderService.handleStockDecrementCompletedEvent : " + "상품 스냅샷 저장 완료");
-//        int subtotalAmount = event.getQuantity() * snapshotResponse.getPrice();
-//        OrderDetail orderDetail = new OrderDetail(
-//                order,
-//                snapshotResponse.getId(),
-//                event.getQuantity(),
-//                subtotalAmount
-//        );
-//        orderDetailRepository.save(orderDetail);
-//        System.out.println("OrderService.handleStockDecrementCompletedEvent : " + "주문 상세정보 저장 완료");
-//
-//        // createOrder 메서드의 for문이 모두 끝났다면
-//        if (allItemsProcessed(order.getId(), event.getTotalOrderItems())) {
-//            finalizeOrder(order, event.getUserResponse(), event.getOrderItems());
-//        }
-//
-//    }
-
-//    // for문 끝났는지 여부 확인 (모든 상품 처리 완료 여부 확인)
-//    private boolean allItemsProcessed(Long orderId, int totalOrderItems) {
-//        long processedCount = orderDetailRepository.countByOrdersId(orderId);
-//        return processedCount == totalOrderItems; // 처리된 항목 수와 주문상품 개수 비교
-//    }
-
-//    // for문 끝났다면 - 최종 주문(orders) 처리
-//    private void finalizeOrder(Orders order, UserResponse userResponse, List<OrderRequest> orderItems) {
-//        System.out.println("OrderService.finalizeOrder : for문이 모두 끝나 최종 주문 처리를 진행합니다.");
-//        List<OrderDetail> orderDetails = orderDetailRepository.findAllByOrdersId(order.getId());
-//
-//        int totalAmount = calculateTotalAmount(orderDetails);
-//        order.setTotalAmount(totalAmount);
-//        orderRepository.save(order);
-//
-//        // ️ [주문 완료] -> [배송중] -> [배송 완료] 상태 자동 업데이트하는 job 생성
-//        scheduleOrderStatusJobs(order.getId());
-//        deleteWishlistItems(userResponse.getId(), orderItems); // 주문 완료 후 위시리스트에서 삭제
-//        List<OrderItemResponse> orderItemResponses = createOrderDetailList(orderDetails); // 반환할 주문 상세 response 생성
-//
-//    }
-
-
-
-
-
-
-
-
-
-
-
 
     // 1. 주문하기
     @Transactional
@@ -190,6 +97,11 @@ public class OrderService {
             order.setTotalAmount(totalAmount);
             orderDetailRepository.saveAll(orderDetails);
 
+            for (OrderRequest item : orderItems) {
+                StockUpdatedEvent event = new StockUpdatedEvent(order.getId(), item.getProductId(), item.getQuantity(), "DECREASE");
+                kafkaProducer.sendStockUpdatedEvent(event);
+            }
+
             // [주문 완료] -> [배송중] -> [배송 완료] 상태 자동 업데이트하는 job 생성
             scheduleOrderStatusJobs(order.getId());
             deleteWishlistItems(userResponse.getId(), orderItems);
@@ -197,6 +109,18 @@ public class OrderService {
 
             return new OrderResponse(order.getId(), order.getStatus(), totalAmount, orderItemResponses);
 
+        } catch (InsufficientStockException e) {
+            for (OrderRequest item : orderItems) {
+                StockUpdateFailedEvent failedEvent = new StockUpdateFailedEvent(
+                        order.getId(),
+                        item.getProductId(),
+                        item.getQuantity(),
+                        e.getMessage()
+                );
+                kafkaProducer.sendStockUpdateFailedEvent(failedEvent);
+                System.out.println("OrderService.createOrder - StockUpdateFailedEvent 전송 완료");
+            }
+            throw e;
         } catch (InterruptedException e) {
             throw new OrderCreateException("락 대기 중 인터럽트 발생");
         } finally {
@@ -227,7 +151,6 @@ public class OrderService {
                 throw new InsufficientStockException("재고가 부족합니다. (남은 재고: " + productResponse.getStockQuantity() + ")");
             }
             ProductSnapshotResponse snapshot = productServiceClient.createProductSnapshot(productResponse);
-            productServiceClient.updateProductStock(productResponse.getId(), productResponse.getStockQuantity() - item.getQuantity());
 
             int subtotalAmount = item.getQuantity() * productResponse.getPrice();
             OrderDetail orderDetail = new OrderDetail(order, snapshot.getId(), item.getQuantity(), subtotalAmount);
@@ -377,7 +300,6 @@ public class OrderService {
             // 현재 상품 재고 가져오기
             ProductResponse product = productServiceClient.getProductById(productId);
             int restoreQuantity = product.getStockQuantity() + detail.getQuantity();
-            productServiceClient.updateProductStock(productId, restoreQuantity);
         }
     }
 
@@ -473,15 +395,20 @@ public class OrderService {
     // 결제 이탈 시 주문데이터 삭제
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void deleteOrderWithDetails(Long orderId) {
-        orderDetailRepository.deleteByOrdersId(orderId); // 자식 테이블의 데이터를 먼저 삭제
         Orders order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new IllegalArgumentException("주문을 찾을 수 없습니다."));
+                .orElse(null);
+
+        if (order == null) {
+            return;
+        }
+        orderDetailRepository.deleteByOrdersId(orderId);
         orderRepository.delete(order);
+        System.out.println("주문 데이터 삭제 완료");
     }
 
     // 최신 5개 조회
     public List<RecentOrderResponse> getTop5OrdersByEmail(String email) {
-        UserResponse userResponse = userServiceClient.getUserEmail(email); // FeignClient로 유저 정보 조회
+        UserResponse userResponse = userServiceClient.getUserEmail(email);
         if (userResponse == null) {
             throw new IllegalArgumentException("해당 이메일을 가진 사용자가 존재하지 않습니다.");
         }
