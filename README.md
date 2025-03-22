@@ -196,7 +196,7 @@ docker-compose up -d
 ### **4. 대규모 트래픽 환경에서 동시 주문 시 트랜잭션 안정성 개선**
 
 - 트래픽이 집중되는 상황에서 예외 발생 시 롤백이 완벽히 수행되지 않는 문제 발생
-- **Orchestration-Based SAGA 패턴**을 적용하여 분산 환경에서도 일관된 트랜잭션 처리,
+- **Choreography Saga패턴**을 적용하여 분산 환경에서도 일관된 트랜잭션 처리,
   실패 시 **보상 트랜잭션** 수행하여 데이터 일관성 유지
 - **개선 결과**
   - **평균 응답속도 18.1% 단축**
@@ -251,7 +251,7 @@ docker-compose up -d
 
 - [**MSA 구조**를 사용하여 결합도가 낮고 확장성에 유리하도록 설계](https://aeongiii.tistory.com/94)
   - **Eureka**로 서비스 디스커버리를 구성하고 **API Gateway**를 활용해 하나의 포트만 공개
-  - **FeignClient**를 사용하여 내부 서비스 간 통신 구현
+  - **Kafka와 FeignClient**를 사용하여 내부 서비스 간 통신 구현
 - [**JWT Token** 관리 시 보안성과 안정성을 고려](https://aeongiii.tistory.com/95)
   - **Access Token**을 **HTTP-Only Cookie**에 저장하여 **XSS 공격 방지**
   - **Refresh Token**의 만료시간 7일로 설정
