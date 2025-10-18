@@ -10,7 +10,7 @@ CREATE TABLE `orders` (
                           `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                           `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 
-                        INDEX `idx_user_created` (`user_id`, `created_at` DESC)
+                        INDEX `idx_user_created` (`user_id`, `created_at`)
 );
 
 CREATE TABLE `order_detail` (
