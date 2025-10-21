@@ -44,3 +44,4 @@ out/
 .env.product
 .env.wishlist
 .env.payment
+.env.*
