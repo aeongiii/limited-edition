@@ -19,7 +19,10 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http.csrf(AbstractHttpConfigurer::disable) // CSRF 비활성화
-                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll()) // 모든 요청 허용
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/internal/order/**").permitAll() // 내부 API 허용
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll() // Swagger 접근 허용
+                        .anyRequest().permitAll()) // 모든 요청 허용
                 .build();
     }
 }

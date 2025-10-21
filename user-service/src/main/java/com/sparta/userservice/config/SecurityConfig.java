@@ -22,6 +22,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/users/**").permitAll() // 인증 없이 접근 가능
                         .requestMatchers("/api/internal/**").permitAll() // 내부 API 접근 허용
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll() // Swagger 접근 허용
                         .anyRequest().authenticated() // 그 외 요청은 인증
                 );
         return http.build();

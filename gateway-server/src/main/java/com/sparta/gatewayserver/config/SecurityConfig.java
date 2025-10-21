@@ -22,7 +22,9 @@ public class SecurityConfig {
     @Bean
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) {
         return http.csrf(ServerHttpSecurity.CsrfSpec::disable) // CSRF 비활성화
-                .authorizeExchange(exchanges -> exchanges.anyExchange().permitAll()) // 모든 요청 허용
+                .authorizeExchange(exchanges -> exchanges
+                        .pathMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll() // Swagger 접근 허용
+                        .anyExchange().permitAll()) // 모든 요청 허용
                 .build(); // SecurityWebFilterChain 객체 반환
     }
 }
