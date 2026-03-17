@@ -45,3 +45,4 @@ out/
 .env.wishlist
 .env.payment
 .env.*
+run-logs/
