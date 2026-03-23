@@ -77,11 +77,13 @@ $projectRoot = $PSScriptRoot
 $logDir = Join-Path $projectRoot "run-logs"
 
 $services = @(
+    @{ Name = "eureka-server"; Port = 8761 },
     @{ Name = "user-service"; Port = 8081 },
     @{ Name = "product-service"; Port = 8082 },
     @{ Name = "order-service"; Port = 8083 },
     @{ Name = "wishlist-service"; Port = 8084 },
-    @{ Name = "payment-service"; Port = 8085 }
+    @{ Name = "payment-service"; Port = 8085 },
+    @{ Name = "gateway-server"; Port = 8080 }
 )
 
 $infraPorts = @(3312, 3311, 3308, 3309, 3310, 6379, 2181, 9092)
@@ -152,7 +154,8 @@ foreach ($svc in $services) {
         -PassThru
 
     $isUp = $false
-    for ($elapsed = 0; $elapsed -lt 240; $elapsed += 2) {
+    $startupTimeoutSec = if ($serviceName -eq "gateway-server") { 360 } else { 240 }
+    for ($elapsed = 0; $elapsed -lt $startupTimeoutSec; $elapsed += 2) {
         Start-Sleep -Seconds 2
         $isUp = (Test-NetConnection -ComputerName localhost -Port $servicePort -WarningAction SilentlyContinue).TcpTestSucceeded
         if ($isUp) { break }
@@ -176,5 +179,4 @@ foreach ($svc in $services) {
     }
 }
 
-Write-Host "Note: Eureka/Gateway are not started by this script in current branch."
 Write-Host "Startup completed."
