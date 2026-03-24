@@ -294,12 +294,7 @@ public class OrderService {
     private void restoreEachStock(Long orderId) {
         List<OrderDetail> orderDetails = orderDetailRepository.findAllByOrdersId(orderId);
         for (OrderDetail detail : orderDetails) {
-            Long productSnapshotId = detail.getProductSnapshotId();
-            ProductSnapshotResponse productSnapshot = productServiceClient.getProductSnapshotById(productSnapshotId);
-            Long productId = productSnapshot.getProductResponse().getId();
-            // 현재 상품 재고 가져오기
-            ProductResponse product = productServiceClient.getProductById(productId);
-            int restoreQuantity = product.getStockQuantity() + detail.getQuantity();
+            productServiceClient.restoreStock(detail.getProductSnapshotId(), detail.getQuantity());
         }
     }
 

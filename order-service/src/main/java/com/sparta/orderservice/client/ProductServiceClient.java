@@ -17,4 +17,7 @@ public interface ProductServiceClient {
 
     @GetMapping("/snapshot/{ProductSnapshotId}")
     ProductSnapshotResponse getProductSnapshotById(@PathVariable Long ProductSnapshotId);
+
+    @PutMapping("/{productSnapshotId}/restore")
+    void restoreStock(@PathVariable("productSnapshotId") Long productSnapshotId, @RequestParam("quantity") int quantity);
 }

@@ -3,7 +3,6 @@ package com.sparta.paymentservice.service;
 import com.sparta.common.dto.OrderRequest;
 import com.sparta.common.dto.OrderResponse;
 import com.sparta.common.dto.PaymentResponse;
-import com.sparta.common.dto.ProductResponse;
 import com.sparta.common.exception.*;
 import com.sparta.paymentservice.client.OrderServiceClient;
 import com.sparta.paymentservice.client.ProductServiceClient;
@@ -127,11 +126,10 @@ public class PaymentService {
     // 결제 이탈 시 재고 복구
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void restoreStock (Long productId, int quantity) {
-        ProductResponse product = productServiceClient.getProductById(productId);
-        if (product == null) {
-            throw new ProductNotFoundException("상품 정보를 찾을 수 없습니다. 상품 ID: " + productId);
+        if (quantity < 1) {
+            throw new IllegalArgumentException("복구 수량은 1 이상이어야 합니다.");
         }
-        int totalQuantity = product.getStockQuantity() + quantity;
+        productServiceClient.restoreStockByProductId(productId, quantity);
     }
 
     // 결제 데이터 삭제

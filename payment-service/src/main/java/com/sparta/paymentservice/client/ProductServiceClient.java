@@ -16,11 +16,14 @@ public interface ProductServiceClient {
     @PutMapping("/{productSnapshotId}/restore")
     void restoreStock(@PathVariable("productSnapshotId") Long productSnapshotId, @RequestParam("quantity") int quantity);
 
+    @PutMapping("/restore-by-product/{productId}")
+    void restoreStockByProductId(@PathVariable("productId") Long productId, @RequestParam("quantity") int quantity);
+
     // 상품 조회
     @GetMapping("/just/{productId}")
     ProductResponse getProductById(@PathVariable("productId")Long productId);
 
     // id로 스냅샷 찾기
     @GetMapping("/snapshot/{ProductSnapshotId}")
-    ProductSnapshotResponse getProductSnapshotById(Long productSnapshotId);
+    ProductSnapshotResponse getProductSnapshotById(@PathVariable("ProductSnapshotId") Long productSnapshotId);
 }

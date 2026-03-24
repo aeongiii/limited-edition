@@ -61,11 +61,26 @@ public class ProductInternalController {
     // 재고 복구
     @PutMapping("/{productSnapshotId}/restore")
     public void restoreStock(@PathVariable Long productSnapshotId, @RequestParam int quantity) {
+        if (quantity < 1) {
+            throw new IllegalArgumentException("복구 수량은 1 이상이어야 합니다.");
+        }
         ProductSnapshot productSnapshot = productSnapshotRepository.findById(productSnapshotId)
                 .orElseThrow(() -> new IllegalArgumentException("ProductSnapshot 정보를 찾을 수 없습니다. Id : " + productSnapshotId));
         Product product = productSnapshot.getProduct();
-        // 업데이트할 재고
-        int totalQuantity = product.getStockQuantity() + quantity;
+        product.setStockQuantity(product.getStockQuantity() + quantity);
+        productRepository.save(product);
+    }
+
+    // productId 기준 재고 복구 (결제 롤백에서 사용)
+    @PutMapping("/restore-by-product/{productId}")
+    public void restoreStockByProductId(@PathVariable Long productId, @RequestParam int quantity) {
+        if (quantity < 1) {
+            throw new IllegalArgumentException("복구 수량은 1 이상이어야 합니다.");
+        }
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다. Id : " + productId));
+        product.setStockQuantity(product.getStockQuantity() + quantity);
+        productRepository.save(product);
     }
 
 }
