@@ -106,10 +106,11 @@ public class UserService {
     // 4. 마이페이지
     @Transactional(readOnly = true)
     public MyPageResponse getMypage(String email) throws Exception {
-        User user = userRepository.findByEmail(email)
+        String encryptedEmail = encryptionUtil.encrypt(email);
+        User user = userRepository.findByEmail(encryptedEmail)
                 .orElseThrow(() -> new InvalidCredentialsException("회원 정보를 찾을 수 없습니다."));
-        String decryptedEmail = encryptionUtil.encrypt(user.getEmail());
-        String decryptedName = encryptionUtil.encrypt(user.getName());
+        String decryptedEmail = encryptionUtil.decrypt(user.getEmail());
+        String decryptedName = encryptionUtil.decrypt(user.getName());
         String decryptedAddress = encryptionUtil.decrypt(user.getAddress());
         List<WishlistResponse> wishlistResponseList = getTop5Wishlists(user);
         List<RecentOrderResponse> orderResponseList = getTop5Orders(user);
